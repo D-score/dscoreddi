@@ -12,7 +12,6 @@
 #' The gsed-naming convention is as follows. Position 1-3 codes the
 #' instrument, position 4-5 codes the domain, position 6 codes
 #' direct/caregiver/message, positions 7-9 is a item sequence number.
-#' @importFrom stringr str_pad
 #' @export
 #' @examples
 #' rename_vwo_gsed("v1")
@@ -34,16 +33,16 @@ rename_vwo_gsed <- function(x, copy = TRUE, version = "2005"){
   #  git <- it[grepl("ddi",x = it$item),"item"]
   #  gnr <- substr(git, 7,9)
   #  y <- git[match(vnr, gnr)]
-   y <- ddomain::itemtableVWO[match(x, ddomain::itemtableVWO$ID.VWO2005),"item"]
+   y <- itemtableVWO[match(x, itemtableVWO$ID.VWO2005),"item"]
 
   }
 
   if(version == "1996"){
-    y <- ddomain::itemtableVWO[match(x, ddomain::itemtableVWO$ID.VWO1996),"item"]
+    y <- itemtableVWO[match(x, itemtableVWO$ID.VWO1996),"item"]
   }
 
   if(version == "duchenne"){
-    y <- ddomain::itemtableVWO[match(x, ddomain::itemtableVWO$labelNL_duch), "item"]
+    y <- itemtableVWO[match(x, itemtableVWO$labelNL_duch), "item"]
   }
 
   if(copy)

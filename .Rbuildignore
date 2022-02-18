@@ -1,2 +1,7 @@
 ^dscoreddi\.Rproj$
 ^\.Rproj\.user$
+^LICENSE\.md$
+^markdown$
+^scripts$
+^data-raw$
+^results$
