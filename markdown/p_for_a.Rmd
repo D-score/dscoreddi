@@ -1,0 +1,119 @@
+---
+title: "p_for_age"
+author: "Iris Eekhout"
+date: "7-9-2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(dplyr)
+library(dscore)
+library(tidyr)
+library(ggplot2)
+library(plotly)
+```
+# Kans op behalen van mijlpalen
+
+```{R include=FALSE}
+load("~/Documents/GitHub/dmetric/data/smoccmodel.rda")
+model <- smoccmodel$model
+refdata <- dmetric::calculate_age_equivalents(model = model, p = seq(1,99, 1), reference = dscore::get_reference(population = "dutch"))
+
+
+pref <- refdata %>%
+  #pivot_longer(cols = c(everything(), -item), names_pattern = "(.)(.*)",
+  #             names_to = c(".value", "percentiel")) %>%
+  mutate(#percentiel = as.numeric(percentiel), 
+         domain = substr(item, 4,5),
+         domein = plyr::revalue(domain, c("cm" = "Communicatie",
+                                          "fm" = "Fijne motoriek",
+                                          "gm" = "Grove motoriek"))) %>%
+  #rename(leeftijd = A) %>%
+  left_join(ddomain::itemtableVWO %>% select(item, labelNL, ID.VWO2005), by = "item") %>% 
+  left_join(model$itemtable %>% select(item, label), by = "item")
+
+
+theme_set(theme_light())
+
+
+ggplot(pref %>% drop_na(A50) %>% mutate(A10 = ifelse(is.na(A10), 0, A10)) , aes(x = reorder(labelNL, -A50),  y= A50, color = "red")) +
+  geom_crossbar(aes(ymin = A10, ymax = A90), fill = "grey")+
+  coord_flip()+
+  ylab("Leeftijd (maanden)") + xlab("") +
+  theme(legend.position = "none")
+#pref %>% group_by(item) %>% slice(1) %>% View()
+
+```
+
+## Over alle leeftijden
+
+```{r, fig.width=12}
+
+p1 <- ggplot(pref, aes(x = leeftijd, y = percentiel, group = labelNL, color = domein))+
+  geom_line() +
+  xlab("Leeftijd (maanden)") +
+  ylab("Kans op behalen mijlpaal")
+
+  ggplotly(p1, tooltip = "all")
+
+
+```
+
+
+## 0-3 maanden
+
+```{r, fig.width=12}
+
+p1 <- ggplot(pref %>% filter(leeftijd < 3), aes(x = leeftijd, y = percentiel, group = labelNL, color = domein))+
+  geom_line() +
+  xlab("Leeftijd (maanden)") +
+  ylab("Kans op behalen mijlpaal")
+
+  ggplotly(p1, tooltip = "all")
+
+
+```
+
+
+## 3-6 maanden
+
+```{r, fig.width=12}
+
+p1 <- ggplot(pref %>% filter(leeftijd >=3 & leeftijd < 6), aes(x = leeftijd, y = percentiel, group = labelNL, color = domein))+
+  geom_line() +
+  xlab("Leeftijd (maanden)") +
+  ylab("Kans op behalen mijlpaal")
+
+  ggplotly(p1, tooltip = "all")
+
+
+```
+
+
+## 6-9 maanden
+```{r, fig.width=12}
+
+p1 <- ggplot(pref %>% filter(leeftijd >= 6 & leeftijd < 9), aes(x = leeftijd, y = percentiel, group = labelNL, color = domein))+
+  geom_line() +
+  xlab("Leeftijd (maanden)") +
+  ylab("Kans op behalen mijlpaal")
+
+  ggplotly(p1, tooltip = "all")
+
+
+```
+
+
+## 9-12 maanden
+```{r, fig.width=12}
+
+p1 <- ggplot(pref %>% filter(leeftijd >=9 & leeftijd < 12), aes(x = leeftijd, y = percentiel, group = labelNL, color = domein))+
+  geom_line() +
+  xlab("Leeftijd (maanden)") +
+  ylab("Kans op behalen mijlpaal")
+
+  ggplotly(p1, tooltip = "all")
+
+
+```

@@ -1,0 +1,53 @@
+---
+title: "ddi itembank/itemtable"
+author: "Iris Eekhout"
+date: "21-5-2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+ 
+ 
+Een aantal items die in de itembank/itemtable voorkomen hebben wel een tau, maar kan ik niet direct terugvinden in de tabellen van Nederlandse Van Wiechen items. Het zijn ook items met een "nummer" > 100. Het gaat om de volgende items:
+
+```{r}
+
+dscore::builtin_itembank[(dscore::builtin_itembank$key == "dutch" &
+                            dscore::builtin_itembank$item %in% c(
+                              c("ddicmd148",
+                                "ddicmd136",
+                                "ddicmd116",
+                                "ddicmd141",
+                                "ddifmd154",
+                                "ddigmd146"
+                              )
+                            )), ]
+
+```
+
+
+Van twee items, kan ik wel dezelfde items terugvinden; maar onder een andere item naam - ook andere gsed naam. Deze twee items `ddicmm040` en `ddicmm035` hebben dan in het dscore model geen tau, terwijl ze wel in het van Wiechen onder die nummering/naam voorkomen. De items `ddicmd148` en `ddicmd136` hebben wel een tau.
+
+```{r}
+
+dscore::get_itemtable(items = c("ddicmd148", "ddicmm040", #dezelfde items maar ddicmd148 niet terug te vinden in van Wiechen
+                                "ddicmd136", "ddicmm035" #dezelfde items maar ddicmd136 niet terug te vinden in van Wiechen
+                                ))
+
+```
+
+
+De onderstande vier items kan ik niet onder de Van Wiechen item namen van 1996 of 2005 terugvinden. Ik zie ze alleen in een lijstje uit 1983. Van deze items heb ik geen Nederlands label.
+```{r}
+
+dscore::get_itemtable(items = c("ddicmd116",   #v1450 
+                                "ddicmd141",  #v1516?
+                                "ddifmd154", #V1531
+                                "ddigmd146" #v1523
+                                
+                                ))
+```
+
+
