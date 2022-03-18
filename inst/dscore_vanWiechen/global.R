@@ -17,7 +17,7 @@ references <- dscore::builtin_references %>%
   filter(month <= 60) %>%
   pivot_longer(names_to = "centile", values_to = "d", cols = -month)
 
-
+theme_set(theme_light())
 ## model and observed pass per item
 model_input <- dmetric::smoccmodel
 data_input <- dmetric::gcdg_lean
