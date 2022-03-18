@@ -1,14 +1,16 @@
 Package: dscoreddi
-Title: D-score tools for Dutch Development Inventory
-Version: 0.0.0.9000
+Title: D-score tools for Dutch Development Instrument
+Version: 0.0.1
 Authors@R: 
     person(given = "Iris",
            family = "Eekhout",
            role = c("aut", "cre"),
            email = "iriseekhout@gmail.com")
-Description: Provides tools for calculating the D-score with the Dutch Development Inventory milestones.
+Description: Provides tools for administering, calculating and visualising the D-score with the Dutch Development Instrument milestones.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
+Depends: 
+    R (>= 2.10)
