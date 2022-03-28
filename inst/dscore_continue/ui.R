@@ -32,8 +32,10 @@ shinyUI(
         # Show a plot of the generated distribution
         mainPanel(
             tabsetPanel(
-                tabPanel("VWO 0-15m", plotOutput("VWOplot1", height = 800)),
-                tabPanel("VWO 12-48m", plotOutput("VWOplot2", height = 800)),
+                tabPanel("VWO 0-15m", plotOutput("VWOplot1", height = 800),
+                         p("** = Kenmerk herhalen; (M) = mededeling; -rl = rechts en links samen")),
+                tabPanel("VWO 12-48m", plotOutput("VWOplot2", height = 800),
+                         p("(M) = mededeling; -rl = rechts en links samen")),
                 tabPanel("D-score curve", plotOutput("Dscoreplot", height = 800))
             )
         )
