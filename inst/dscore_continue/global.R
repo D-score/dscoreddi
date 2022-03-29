@@ -1,5 +1,8 @@
 ## consumes plumber API at http://127.0.0.1:3387
 
+host <- "http://127.0.0.1:3387"  # interactive
+host <- "http://127.0.0.1:8000"  # docker container
+
 ## global libraries for van wiechen continue
 library(ggplot2)
 library(dplyr)
@@ -8,13 +11,14 @@ library(gridExtra)
 library(cowplot)
 
 # API client
-devtools::install_github("growthcharts/jamesclient")
-library(jamesclient)
+if (!require("jamesclient")) {
+  remotes::install_github("growthcharts/jamesclient")
+  require("jamesclient")
+}
 
 theme_set(theme_light())
 
 # get Dutch reference
-host <- "http://127.0.0.1:3387"
 resp <- james_get(host, path = "reference", query = "population=dutch")
 reference <- resp$parsed
 
