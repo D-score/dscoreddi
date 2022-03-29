@@ -1,30 +1,34 @@
+## consumes plumber API at http://127.0.0.1:3387
 
-
-## global for van wiechen continue
+## global libraries for van wiechen continue
 library(ggplot2)
 library(dplyr)
 library(tidyr)
-library(dscore)
-library(dmetric)
 library(gridExtra)
 library(cowplot)
-library(dscoreddi)
-library(dinstrument)
 
+# API client
+devtools::install_github("growthcharts/jamesclient")
+library(jamesclient)
 
 theme_set(theme_light())
 
+# get Dutch reference
+host <- "http://127.0.0.1:3387"
+resp <- james_get(host, path = "reference", query = "population=dutch")
+reference <- resp$parsed
 
-itembank <- dscore::builtin_itembank %>% filter(key == "dutch") %>%
+# load and adapt itembank
+itembank <- james_get(host, path = "itembank")$parsed %>%
+  filter(key == "dutch") %>%
   bind_rows(data.frame(item = "ddifmd028", tau = 72),
             data.frame(item = "ddicmm051", tau = 74),
             data.frame(item = "ddigmd075", tau = 72)
   )
 
-
-#expand reference with a count model (based on dmetric/expand_referenced.Rmd)
-#44.35 - 1.8 * t + 28.47 * log(t + 0.25)
-expanded_reference <- dscore::get_reference(population = "dutch") %>%
+# expand reference with a count model (based on dmetric/expand_referenced.Rmd)
+# 44.35 - 1.8 * t + 28.47 * log(t + 0.25)
+expanded_reference <- reference %>%
   select(pop, age, mu) %>%
   bind_rows(data.frame(pop = "dutch", age = seq(3.2, 5, 0.04), mu = NA),
             data.frame(pop = "dutch", age = 0, mu = NA)) %>%
@@ -32,16 +36,20 @@ expanded_reference <- dscore::get_reference(population = "dutch") %>%
     mu1 = mu,
     mu = ifelse(is.na(mu), 44.35 - 1.8 * age + 28.47 * log(age + 0.25), mu))
 
-refdata <- dmetric::calculate_age_equivalents(itembank = itembank, scalefactor = 2.099986, p = c(10, 50, 90), reference = expanded_reference)
-
-#load("data/itemtableVWO.rda")
+# execute a post request
+refdata <- james_post(host = host,
+                      path = "get_age_equivalents",
+                      itembank = itembank,
+                      scalefactor = 2.099986,
+                      reference = expanded_reference)$parsed
+itemtableVWO <- james_get(host = host, path = "itemtableVWO")$parsed
 
 prefdat <- refdata %>%
-   mutate(
+  mutate(
     domain = substr(item, 4,5),
     domein = dplyr::recode(domain, "cm" = "Communicatie",
-                                     "fm" = "Fijne motoriek",
-                                     "gm" = "Grove motoriek")) %>%
+                           "fm" = "Fijne motoriek",
+                           "gm" = "Grove motoriek")) %>%
   #rename(leeftijd = A) %>%
   left_join(itemtableVWO %>% select(item, labelNL, ID.VWO2005, month), by = "item") %>%
   mutate(nr = as.numeric(substr(item, 7, 9)),
@@ -62,19 +70,15 @@ prefdat <- refdata %>%
          A10 = ifelse(is.na(A10), 0, A10),
          A50 = ifelse(is.na(A50), 0, A50),
          A90 = ifelse(is.na(A90), 0, A90)
-
   ) %>%
   arrange(nr)
-
 
 ggplot(expanded_reference, aes(x = age, y = mu))+
   geom_line()+
   geom_line(aes(x = age, y = mu1, color = "red"))
 
-
-#child data for demo
-references <- dscore::builtin_references %>%
-  filter(pop == "dutch") %>%
+# child data for demo
+references <- reference %>%
   mutate(month = age * 12) %>%
   select(month, SDM2:SDP2) %>%
   filter(month <= 60) %>%
