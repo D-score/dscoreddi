@@ -22,11 +22,12 @@ shinyServer(function(input, output) {
         selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = expanded_reference, scalefactor = 2.099986, leniency = input$refperc, n = input$suggest)$item
 
             prefdat %>%
-            mutate(highlight = ifelse(item %in% selected_items, "#1A80C4", "black"))
+            mutate(highlight = ifelse(item %in% selected_items, "#e6550d", "black"),
+                   bold = ifelse(item %in% selected_items, "bold", "plain"))
 
-
-
-
+            #1A80C4 - blue color
+            #31a354 - green color
+            #e6550d - red color
     })
 
     #
@@ -35,49 +36,53 @@ shinyServer(function(input, output) {
         ## 0-18m
         fm_highlight <- pref() %>% filter(domein == "Fijne motoriek"& sideA == 1) %>%
             arrange(-nr) %>% select(highlight) #added
-
+        fm_bold <- pref() %>% filter(domein == "Fijne motoriek"& sideA == 1) %>%
+          arrange(-nr) %>% select(bold)
         fm1 <-
             ggplot(pref() %>% filter(domein == "Fijne motoriek"& sideA == 1),  #selecteer milestons met A10 < 15 maanden
                    aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) + #changed
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
-            scale_color_manual(values = c("black" = "black", "#1A80C4" = "#1A80C4"))+ #added
+            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
             geom_hline(yintercept = input$agemos)+
             coord_flip()+ xlab("") +
-            theme(legend.position = "none", axis.text.y = element_text(color = fm_highlight[[1]])) +
+            theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
             scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18),position = "right")+
             ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
 
         cm_highlight <- pref() %>% filter(domein == "Communicatie"& sideA == 1) %>%
             arrange(-nr) %>% select(highlight) #added
-
+        cm_bold <- pref() %>% filter(domein == "Communicatie"& sideA == 1) %>%
+          arrange(-nr) %>% select(bold)
         cm1 <-
             ggplot(pref() %>% filter(domein == "Communicatie"& sideA == 1),#selecteer milestons met A10 < 15 maanden
                    aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
-            scale_color_manual(values = c("black" = "black", "#1A80C4" = "#1A80C4"))+ #added
+            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
             geom_hline(yintercept = input$agemos)+
             coord_flip() + xlab("") +
-            theme(legend.position = "none", axis.text.y = element_text(color = cm_highlight[[1]])) +
+            theme(legend.position = "none", axis.text.y = element_text(face = cm_bold[[1]], color = cm_highlight[[1]])) +
             scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18), position = "right")+
             ggtitle("Communicatie")
 
 
         gm_highlight <- pref() %>% filter(domein == "Grove motoriek"& sideA == 1) %>%
             arrange(-nr) %>% select(highlight) #added
+        gm_bold <- pref() %>% filter(domein == "Grove motoriek"& sideA == 1) %>%
+          arrange(-nr) %>% select(bold)
 
         gm1 <-
             ggplot(pref() %>% filter(domein == "Grove motoriek" & sideA == 1), #selecteer milestons met A10 < 15 maanden
                    aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
-            scale_color_manual(values = c("black" = "black", "#1A80C4" = "#1A80C4"))+ #added
+            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
             geom_hline(yintercept = input$agemos)+
             coord_flip()+
             ylab("Leeftijd (maanden)") + xlab("") +
-            theme(legend.position = "none", axis.text.y = element_text(color = gm_highlight[[1]])) +
+            theme(legend.position = "none", axis.text.y = element_text(face = gm_bold[[1]], color = gm_highlight[[1]])) +
             scale_y_continuous(name = "Leeftijd (maanden)", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18),
                                sec.axis = sec_axis(trans = ~(.*1), breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3))))+
             ggtitle("Grove motoriek")
@@ -93,43 +98,50 @@ shinyServer(function(input, output) {
 
         fm_highlight <- pref() %>% filter(domein == "Fijne motoriek"& sideB == 1) %>%
             arrange(-nr) %>% select(highlight) #added
+        fm_bold <- pref() %>% filter(domein == "Fijne motoriek"& sideB == 1) %>%
+          arrange(-nr) %>% select(bold)
+
     fm2 <-
         ggplot(pref() %>% filter(domein == "Fijne motoriek"& sideB == 1), #selecteer milestons met A10 < 15 maanden
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
-        scale_color_manual(values = c("black" = "black", "#1A80C4" = "#1A80C4"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
         geom_hline(yintercept = input$agemos)+
         coord_flip()+ xlab("") +
-        theme(legend.position = "none", axis.text.y = element_text(color = fm_highlight[[1]])) +
+        theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
         scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(8,50),position = "right")+
         ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
     cm_highlight <- pref() %>% filter(domein == "Communicatie"& sideB == 1) %>%
         arrange(-nr) %>% select(highlight) #added
+    cm_bold <- pref() %>% filter(domein == "Communicatie"& sideB == 1) %>%
+      arrange(-nr) %>% select(bold)
     cm2 <-
         ggplot(pref() %>% filter(domein == "Communicatie"& sideB == 1),#selecteer milestons met A10 < 15 maanden
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
-        scale_color_manual(values = c("black" = "black", "#1A80C4" = "#1A80C4"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
         geom_hline(yintercept = input$agemos)+
         coord_flip()+ xlab("") +
-        theme(legend.position = "none", axis.text.y = element_text(color = cm_highlight[[1]])) +
+        theme(legend.position = "none", axis.text.y = element_text(face = cm_bold[[1]], color = cm_highlight[[1]])) +
         scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(8,50), position = "right")+
         ggtitle("Communicatie")
 
     gm_highlight <- pref() %>% filter(domein == "Grove motoriek"& sideB == 1) %>%
         arrange(-nr) %>% select(highlight) #added
+    gm_bold <- pref() %>% filter(domein == "Grove motoriek"& sideB == 1) %>%
+      arrange(-nr) %>% select(bold)
     gm2 <-
         ggplot(pref() %>% filter(domein == "Grove motoriek" & sideB == 1), #selecteer milestons met A10 < 15 maanden
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
-        scale_color_manual(values = c("black" = "black", "#1A80C4" = "#1A80C4"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
         geom_hline(yintercept = input$agemos)+
         coord_flip()+ xlab("") +
-        theme(legend.position = "none", axis.text.y = element_text(color = gm_highlight[[1]])) +
+        theme(legend.position = "none", axis.text.y = element_text(face = gm_bold[[1]], color = gm_highlight[[1]])) +
         ylab("Leeftijd (maanden)") + xlab("") +
         scale_y_continuous(name = "Leeftijd (maanden)", breaks = seq(0,48,3), limits= c(8,50),
                            sec.axis = sec_axis(trans = ~(.*1), breaks = seq(0,48,3)))+
@@ -148,7 +160,7 @@ shinyServer(function(input, output) {
     output$Dscoreplot <- renderPlot({
 
         ggplot()+
-            geom_line(data =references, aes(x = month, y = d, group = centile), color = "#1A80C4", size = 0.8, alpha = 0.5) +
+            geom_line(data =references, aes(x = month, y = d, group = centile), color = "#e6550d", size = 0.8, alpha = 0.5) +
             geom_point(data = childdat, aes(x = month, y = d), size = 2)+
             geom_line(data = childdat, aes(x = month, y = d), size = 1)+
 
