@@ -30,15 +30,14 @@ itembank <- james_get(host, path = "itembank")$parsed %>%
             data.frame(item = "ddigmd075", tau = 72)
   )
 
-# expand reference with a count model (based on dmetric/expand_referenced.Rmd)
-# 44.35 - 1.8 * t + 28.47 * log(t + 0.25)
-expanded_reference <- reference %>%
-  select(pop, age, mu) %>%
-  bind_rows(data.frame(pop = "dutch", age = seq(3.2, 5, 0.04), mu = NA),
-            data.frame(pop = "dutch", age = 0, mu = NA)) %>%
-  mutate(
-    mu1 = mu,
-    mu = ifelse(is.na(mu), 44.35 - 1.8 * age + 28.47 * log(age + 0.25), mu))
+
+# get expanded reference
+resp <- james_get(host, path = "expanded_reference", query = "population=dutch")
+expanded_reference <- resp$parsed
+
+
+expanded_reference <- dscoreddi::expand_reference(population = "dutch")
+
 
 # execute a post request
 refdata <- james_post(host = host,

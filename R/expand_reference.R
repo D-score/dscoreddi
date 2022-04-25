@@ -8,17 +8,18 @@
 #' @param population A string describing the population. Currently supported
 #' are "dutch" and "gcdg" (default).
 #' @importFrom dscore get_reference
+#' @importFrom dplyr %>% mutate bind_rows select .data
 #' @return
 #' @export
-#'
 #' @examples
-expanded_reference <- function(population = "gcdg") {
+#' expand_reference(population = "dutch")
+expand_reference <- function(population = "gcdg") {
 
   dscore::get_reference(population = population) %>%
-  select(pop, age, mu) %>%
+  dplyr::select(.data$pop, .data$age,.data$ mu) %>%
   bind_rows(data.frame(pop = population, age = seq(3.2, 5, 0.04), mu = NA),
             data.frame(pop = population, age = 0, mu = NA)) %>%
   mutate(
-    mu1 = mu,
-    mu = ifelse(is.na(mu), 44.35 - 1.8 * age + 28.47 * log(age + 0.25), mu))
+    mu1 = .data$mu,
+    mu = ifelse(is.na(.data$mu), 44.35 - 1.8 * .data$age + 28.47 * log(.data$age + 0.25), .data$mu))
 }
