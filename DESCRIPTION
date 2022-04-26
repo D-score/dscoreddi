@@ -20,5 +20,5 @@ Imports:
     dmetric,
     dinstrument
 Remotes:
-    d-score/dmetric
+    d-score/dmetric,
     d-score/dinstrument
