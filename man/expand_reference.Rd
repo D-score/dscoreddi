@@ -11,7 +11,7 @@ expand_reference(population = "gcdg")
 are "dutch" and "gcdg" (default).}
 }
 \value{
-
+data.frame
 }
 \description{
 Expand reference obtained with \code{dscore::get_reference} with a count model

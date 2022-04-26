@@ -9,7 +9,7 @@
 #' are "dutch" and "gcdg" (default).
 #' @importFrom dscore get_reference
 #' @importFrom dplyr %>% mutate bind_rows select .data
-#' @return
+#' @return data.frame
 #' @export
 #' @examples
 #' expand_reference(population = "dutch")

@@ -31,7 +31,6 @@ percentile_plot_data <- function(#general input
                              "cm" = "Communicatie",
                              "fm" = "Fijne motoriek",
                              "gm" = "Grove motoriek")) %>%
-    #rename(leeftijd = A) %>%
     left_join(dscoreddi::itemtableVWO %>% select(item, labelNL, ID.VWO2005, month), by = "item") %>%
     mutate(nr = as.numeric(substr(item, 7, 9)),
            nr = ifelse(nr == 136, 35, nr),
@@ -42,7 +41,6 @@ percentile_plot_data <- function(#general input
            domein = ifelse(nr == 6, "Fijne motoriek", domein),
 
            labelNLnr = paste(nr, labelNL, sep = ". "),
-           #labelNLn = ifelse(nr %in% 52:55, paste(nr, labelNL, sep = ".* "), labelNLn),
            labelNLn = ifelse(month < 10, paste(labelNLnr, month, sep = " |  "),
                              paste(labelNLnr, month, sep = " |") ),
            labelNLn = ifelse(nr %in% 52:55, paste(labelNLnr, "**", sep = " | "), labelNLn),
