@@ -17,8 +17,12 @@ Depends:
 Imports:
     dscore,
     dplyr,
+    rlang,
     dmetric,
-    dinstrument
+    dinstrument,
+    cowplot,
+    ggplot2,
+    gridExtra
 Remotes:
     d-score/dmetric,
     d-score/dinstrument
