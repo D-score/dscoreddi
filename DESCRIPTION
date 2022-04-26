@@ -19,3 +19,6 @@ Imports:
     dplyr,
     dmetric,
     dinstrument
+Remotes:
+    d-score/dmetric
+    d-score/dinstrument
