@@ -62,6 +62,30 @@ ui <-
                             column(1, offset = 1, actionButton("run7", "Next"))
                         )
                     ))),
+            tabItem(tabName = "invoer",
+                    fluidRow(
+                    tabsetPanel(
+                      tabPanel("Invoer",
+                      box(width = 12,
+                        numericInput("age1", "Leeftijd in maanden", min = 0, max = 52, step = 1, value = NULL)),
+                        box(title = "0-12maanden",
+                                 uiOutput("vwinvoerA"), width = 6),
+                               box(title = "12-48maanden",
+                                 uiOutput("vwinvoerB"), width = 6)
+                      ),
+                      tabPanel("Data",
+                               box(tableOutput("vwingevoerd"))),
+                      tabPanel("D-score",
+                               box(
+                               plotOutput("scoreplot"),
+                               tableOutput("scoretab")
+                               )
+                      )
+                    ))
+
+
+
+                    ),
             tabItem(tabName = "about",
                     fluidRow(box(tags$h1("About"),
                                  width = 400,

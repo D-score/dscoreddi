@@ -8,6 +8,9 @@ library(dplyr)
 library(gtools)
 library(plotly)
 library(tidyr)
+library(knitr)
+library(kableExtra)
+library(gseddata)
 
 ## references
 references <- dscore::builtin_references %>%
@@ -49,7 +52,7 @@ pref <- refdata %>%
   mutate(domain = plyr::revalue(domain, c("cm" = "Communication",
                                           "fm" = "Fine motor",
                                           "gm" = "Gross motor"))) %>%
-  left_join({ddomain::itemtableVWO %>% select(item, labelNL, ID.VWO2005)}, by = "item") %>%
+  left_join({dscoreddi::itemtableVWO %>% select(item, labelNL, ID.VWO2005)}, by = "item") %>%
   mutate(labelNL = ifelse(item == "ddicmd148", "Begrijpt spelopdrachtjes (M)", labelNL),
          labelNL = ifelse(item == "ddicmd136", "Reageert op mondeling verzoek (M)", labelNL)) %>%
          drop_na(labelNL)
@@ -62,3 +65,37 @@ p_a_all <-
   ylab("% pass")
 
 #ggplotly(p_a_all)
+
+
+
+itembank <- dscore::builtin_itembank %>% filter(key == "dutch") %>%
+  bind_rows(data.frame(item = "ddifmd028", tau = 72),
+            data.frame(item = "ddicmm051", tau = 74),
+            data.frame(item = "ddigmd075", tau = 72)
+  ) %>%
+  mutate(
+    domain = substr(item, 4,5),
+    domein = dplyr::recode(domain, "cm" = "Communicatie",
+                           "fm" = "Fijne motoriek",
+                           "gm" = "Grove motoriek")) %>%
+  #rename(leeftijd = A) %>%
+  left_join(dscoreddi::itemtableVWO %>% select(item, labelNL, ID.VWO2005, month), by = "item") %>%
+    mutate(nr = as.numeric(substr(item, 7, 9)),
+         nr = ifelse(nr == 136, 35, nr),
+         nr = ifelse(nr == 148, 40, nr),
+         nr = ifelse(nr == 068, 68.1, nr),
+         nr = ifelse(nr == 168, 68.2, nr),
+         nr = ifelse(nr == 268, 68.3, nr),
+         domein = ifelse(nr == 6, "Fijne motoriek", domein),
+
+         labelNLnr = paste(nr, labelNL, sep = ". "),
+         #labelNLn = ifelse(nr %in% 52:55, paste(nr, labelNL, sep = ".* "), labelNLn),
+         labelNLn = ifelse(month < 10, paste(labelNLnr, month, sep = " |  "),
+                           paste(labelNLnr, month, sep = " |") ),
+         labelNLn = ifelse(nr %in% 52:55, paste(labelNLnr, "**", sep = " | "), labelNLn),
+         sideA = ifelse(nr %in% c(1:12, 29:38, 52:67), 1, 0),
+         sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2), 1, 0))
+
+itembankA <- itembank %>% filter(sideA == 1) %>% arrange(nr)
+
+itembankB <- itembank %>% filter(sideB == 1) %>% arrange(nr)

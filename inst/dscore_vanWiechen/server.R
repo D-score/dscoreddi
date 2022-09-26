@@ -26,6 +26,9 @@ server <- function(input, output, session) {
             menuItem("Real data",
                      tabName = "p_a_obs",
                      icon = icon("line-chart")),
+            menuItem("Van Wiechen scoren",
+                     tabName = "invoer",
+                     icon = icon("check")),
             menuItem("About",
                      tabName = "about",
                      icon = icon("info"))
@@ -159,7 +162,108 @@ server <- function(input, output, session) {
     })
 
 
+###invoer---------------------
 
+
+
+    output$vwinvoerA <- renderUI({
+      lapply(as.list(itembankA$item), function(q){
+        radioButtons(inputId = q,
+                     label = itembank[itembank$item==q,"labelNLn"],
+                     choiceNames = c("-", "+"),
+                     choiceValues = c(0,1),
+                     selected = character(0),
+                     #selected = character(0) ,
+                     inline = TRUE)
+      })
+
+    })
+
+
+    output$vwinvoerB <- renderUI({
+      lapply(as.list(itembankB$item), function(q){
+        radioButtons(inputId = q,
+                     label = itembank[itembank$item==q,"labelNLn"],
+                     choiceNames = c("-", "+"),
+                     choiceValues = c(0,1),
+                     selected = character(0),
+                     #selected = character(0) ,
+                     inline = TRUE)
+      })
+
+    })
+
+
+    itemleveldata <- reactive({
+      uitlist <- lapply(as.list(itembank$item), function(q){
+        answer <- input[[q]]
+        #reverse score if recode == ja
+        if(length(answer)>0) answer <- as.numeric(answer)
+        if(length(answer)==0) {
+          answer <- NA}
+
+        answer
+
+      })
+      names(uitlist) <- itembank$item
+      as.data.frame(uitlist)
+
+    })
+
+output$vwingevoerd <- renderTable(
+  {
+  df <-
+  itemleveldata() %>%
+    pivot_longer(everything(), names_to = "item", values_to = "score") %>%
+    drop_na(score) %>%
+    left_join(itembank) %>%
+    select(labelNL, score)
+
+  df
+})
+
+wvdscore <- reactive({
+  dfd <- data.frame(age = input$age1/12, itemleveldata())
+
+  dscore::dscore(data = dfd, items = names(itemleveldata()), population = "dutch",
+                key = "dutch")
+
+
+})
+
+resulttable <- reactive({
+  tab <- wvdscore()
+  colnames(tab) <- c("Age", "n", "p", "D-score", "sem", "daz")
+  tab
+})
+
+output$scoretab <- function() {
+  resulttable() %>%
+    knitr::kable("html") %>%
+    kable_styling("striped", full_width = F) %>%
+    footnote(general = "Age = age in years (decimal); n = number of available milestones; p = percentage of passed milestones; D -score = development score; sem = standard error of measurement; daz = D-score adjusted for age",
+             general_title = "Note:")
+}
+
+output$scoreplot <- renderPlot({
+
+  r <- dscore::builtin_references %>%
+    filter(pop == "dutch") %>%
+    mutate(age = age *12) %>%
+    select(age, SDM2, SD0, SDP2)
+
+  ggplot(wvdscore(), aes(a*12, d)) +
+    geom_point(shape = 16, size = 2, show.legend = FALSE, alpha = .75 , color = 'navyblue') +
+    labs(x = "Age (Months)", y = "D-score") +
+    ggtitle(paste("D-score voor ingevoerde van Wiechenschema"))+
+    theme_light() +
+    annotate("polygon", x = c(r$age, rev(r$age)),
+             y = c(r$SDM2, rev(r$SDP2)), alpha = 0.1, fill = "green") +
+    annotate("line", x = r$age, y = r$SDM2, lwd = 0.3, alpha = 0.2, color = "green") +
+    annotate("line", x = r$age, y = r$SDP2, lwd = 0.3, alpha = 0.2, color = "green") +
+    annotate("line", x = r$age, y = r$SD0, lwd = 0.5, alpha = 0.2, color = "green")
+
+})
 
 
 
