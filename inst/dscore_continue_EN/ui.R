@@ -9,7 +9,7 @@ shinyUI(
     fluidPage(
 
     # Application title
-    titlePanel("Dutch Development instrument - adaptieve demo"),
+    titlePanel("Dutch Development instrument - adaptive demo"),
 
     # Sidebar with a slider input for number of bins
     sidebarLayout(
