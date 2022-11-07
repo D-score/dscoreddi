@@ -244,6 +244,87 @@ dev.off()
 
 ###################################
 
+## plot per domein
+pref <- pref %>% filter(sideA ==1 |sideB ==1)
+
+fm_dom <-
+    ggplot(pref %>% filter(domein == "Fijne motoriek"), #selecteer milestons met A10 < 15 maanden
+           aes(x = reorder(labelNLn, -nr),  y= A50)) +
+    geom_point()+
+    geom_errorbar(aes(ymin = A10, ymax = A90))+
+    scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+    coord_flip()+
+   # theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+    xlab("")+
+    ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
+
+  fm_dom
+
+
+
+  cm_dom <-
+    ggplot(pref %>% filter(domein == "Communicatie"),#selecteer milestons met A10 < 15 maanden
+           aes(x = reorder(labelNLn, -nr),  y= A50)) +
+    geom_point()+
+    geom_errorbar(aes(ymin = A10, ymax = A90))+
+    scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+    coord_flip()+
+    xlab("") +
+    scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+    ggtitle("Communicatie")
+
+  cm_dom
+
+
+  gm_dom <-
+    ggplot(pref %>% filter(domein == "Grove motoriek"), #selecteer milestons met A10 < 15 maanden
+           aes(x = reorder(labelNLn, -nr),  y= A50)) +
+    geom_point()+
+    geom_errorbar(aes(ymin = A10, ymax = A90))+
+    scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+    coord_flip()+
+    xlab("") +
+    scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+    ggtitle("Grove motoriek")
+
+  gm_dom
+
+
+
+
+  allplotslist <- align_plots(fm_dom,cm_dom,gm_dom, align = "v")
+
+  m1 <- arrangeGrob(grobs = allplotslist, nrow = 3, ncol = 1, heights = c(12,10,11))
+
+
+  pdf("results/percentiel_perdomein_onepage.pdf", onefile = TRUE, width = 10, height = 12)
+  grid.arrange(m1)
+  dev.off()
+
+
+ # allplotslist2 <- align_plots(cm_dom,gm_dom, align = "v")
+#  allplotslist2 <- align_plots(cm_dom,gm_dom, align = "v")
+  m2.1 <- arrangeGrob(grobs = list(allplotslist[[1]]), nrow = 2, ncol =1, heights = c(12,9))
+  m2.2 <- arrangeGrob(grobs = list(allplotslist[[2]], allplotslist[[3]]), nrow = 2, ncol = 1, heights = c(10,11))
+
+  pdf("results/percentiel_perdomein_twopages.pdf", onefile = TRUE, width = 8.5, height = 12)
+  grid.arrange(m2.1)
+  grid.arrange(m2.2)
+  dev.off()
+
+
+
+  pdf("results/percentiel_perdomein_threepages_landscape.pdf", onefile = TRUE, width = 12, height = 8.5 )
+  fm_dom
+  cm_dom
+  gm_dom
+  dev.off()
+
+
+
+###################################
+
 ## add DH data as reference
 
 
