@@ -22,6 +22,7 @@ shinyServer(function(input, output) {
         selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = expanded_reference, scalefactor = 2.099986, leniency = input$refperc, n = input$suggest)$item
 
             prefdat %>%
+              filter(sideA==1 | sideB ==1) %>% #only use selection voor VWO
             mutate(highlight = ifelse(item %in% selected_items, "#e6550d", "black"),
                    bold = ifelse(item %in% selected_items, "bold", "plain"))
 
@@ -30,7 +31,8 @@ shinyServer(function(input, output) {
             #e6550d - red color
     })
 
-    #
+
+#####---- Plot Milestones for 0-15m
     output$VWOplot1 <- renderPlot({
 
         ## 0-18m
@@ -94,6 +96,10 @@ shinyServer(function(input, output) {
 
 
     })
+
+
+#####---- Plot Milestones for 6-48m
+
     output$VWOplot2 <- renderPlot({
 
         fm_highlight <- pref() %>% filter(domein == "Fijne motoriek"& sideB == 1) %>%
@@ -109,8 +115,8 @@ shinyServer(function(input, output) {
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
         geom_hline(yintercept = input$agemos)+
         coord_flip()+ xlab("") +
+      scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(0,50),position = "right")+
         theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
-        scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(8,50),position = "right")+
         ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
     cm_highlight <- pref() %>% filter(domein == "Communicatie"& sideB == 1) %>%
@@ -142,9 +148,7 @@ shinyServer(function(input, output) {
         geom_hline(yintercept = input$agemos)+
         coord_flip()+ xlab("") +
         theme(legend.position = "none", axis.text.y = element_text(face = gm_bold[[1]], color = gm_highlight[[1]])) +
-        ylab("Leeftijd (maanden)") + xlab("") +
-        scale_y_continuous(name = "Leeftijd (maanden)", breaks = seq(0,48,3), limits= c(8,50),
-                           sec.axis = sec_axis(trans = ~(.*1), breaks = seq(0,48,3)))+
+        scale_y_continuous(name = "Leeftijd (maanden)", breaks = seq(0,48,3), limits= c(8,50), sec.axis = sec_axis(trans = ~(.*1), breaks = seq(0,48,3)))+
         ggtitle("Grove motoriek")
 
 
@@ -157,6 +161,90 @@ shinyServer(function(input, output) {
     grid.arrange(m1)
 
 })
+
+
+
+#####----- Plot milestones for Fine motor
+    output$VWOfinemotor <- renderPlot({
+
+      fm_highlight <- pref() %>% filter(domein == "Fijne motoriek") %>%
+        arrange(-nr) %>% select(highlight) #added
+      fm_bold <- pref() %>% filter(domein == "Fijne motoriek") %>%
+        arrange(-nr) %>% select(bold)
+
+      fm_dom <-
+        ggplot(pref() %>% filter(domein == "Fijne motoriek"), #selecteer milestons met A10 < 15 maanden
+               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
+        geom_point()+
+        geom_errorbar(aes(ymin = A10, ymax = A90))+
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+        geom_hline(yintercept = input$agemos)+
+        coord_flip()+
+        theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
+        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+        xlab("")+
+        ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
+
+      fm_dom
+    })
+
+    output$VWOcommunication <- renderPlot({
+
+      cm_highlight <- pref() %>% filter(domein == "Communicatie") %>%
+        arrange(-nr) %>% select(highlight) #added
+      cm_bold <- pref() %>% filter(domein == "Communicatie") %>%
+        arrange(-nr) %>% select(bold)
+
+      cm_dom <-
+        ggplot(pref() %>% filter(domein == "Communicatie"),#selecteer milestons met A10 < 15 maanden
+               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
+        geom_point()+
+        geom_errorbar(aes(ymin = A10, ymax = A90))+
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+        geom_hline(yintercept = input$agemos)+
+        coord_flip()+
+        xlab("") +
+        theme(legend.position = "none", axis.text.y = element_text(face = cm_bold[[1]], color = cm_highlight[[1]])) +
+        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+        ggtitle("Communicatie")
+
+      cm_dom
+    })
+
+  output$VWOgrovemotor <- renderPlot({
+      gm_highlight <- pref() %>% filter(domein == "Grove motoriek") %>%
+        arrange(-nr) %>% select(highlight) #added
+      gm_bold <- pref() %>% filter(domein == "Grove motoriek") %>%
+        arrange(-nr) %>% select(bold)
+     gm_dom <-
+        ggplot(pref() %>% filter(domein == "Grove motoriek"), #selecteer milestons met A10 < 15 maanden
+               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
+        geom_point()+
+        geom_errorbar(aes(ymin = A10, ymax = A90))+
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+        geom_hline(yintercept = input$agemos)+
+        coord_flip()+
+        xlab("") +
+        theme(legend.position = "none", axis.text.y = element_text(face = gm_bold[[1]], color = gm_highlight[[1]])) +
+       scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+        ggtitle("Grove motoriek")
+
+      gm_dom
+
+
+    })
+
+
+
+
+
+
+
+
+
+
+
+ ####---- D-score demo plot
     output$Dscoreplot <- renderPlot({
 
         ggplot()+

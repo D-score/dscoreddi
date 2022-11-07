@@ -13,7 +13,7 @@ shinyUI(
 
     # Sidebar with a slider input for number of bins
     sidebarLayout(
-        sidebarPanel(
+        sidebarPanel(width = 2,
             p("Deze applicatie selecteert op basis van leeftijd en percentiel (regulier is ongeveer 90 en gemiddeld is ongeveer 50) het wenste aantal aanbevolen van Wiechen kenmerken om af te nemen in blauw."),
             br(),
 
@@ -34,7 +34,7 @@ shinyUI(
         ),
 
         # Show a plot of the generated distribution
-        mainPanel(
+        mainPanel(width = 10,
             tabsetPanel(
                 tabPanel("VWO 0-15m",
                          plotOutput("VWOplot1", height = 800),
@@ -46,6 +46,21 @@ shinyUI(
                          p("(M) = mededeling; -rl = rechts en links samen"),
                          p("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind. Kenmerken die passen bij de instellingen zijn gekleurd.")
                          ),
+                tabPanel("VWO Fijne motoriek",
+                         plotOutput("VWOfinemotor", height = 800),
+                         p("** = Kenmerk herhalen; (M) = mededeling; -rl = rechts en links samen"),
+                         p("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind. Kenmerken die passen bij de instellingen zijn gekleurd.")
+                ),
+                tabPanel("VWO Communicatie",
+                         plotOutput("VWOcommunication", height = 800),
+                         p("(M) = mededeling; -rl = rechts en links samen"),
+                         p("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind. Kenmerken die passen bij de instellingen zijn gekleurd.")
+                ),
+                tabPanel("VWO Grove motoriek",
+                         plotOutput("VWOgrovemotor", height = 800),
+                         p("** = Kenmerk herhalen; (M) = mededeling; -rl = rechts en links samen"),
+                         p("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind. Kenmerken die passen bij de instellingen zijn gekleurd.")
+                ),
                 tabPanel("D-score curve", plotOutput("Dscoreplot", height = 800))
             )
         )
