@@ -1,10 +1,5 @@
 #
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
+# App that shows the probability to pass a milestone for each van Wiechen item for model versus observed data en separate plots per milestone
 #
 
 
