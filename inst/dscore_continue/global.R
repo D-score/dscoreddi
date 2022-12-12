@@ -58,7 +58,7 @@ prefdat <- refdata %>%
                            paste(labelNLnr, month, sep = " |") ),
          labelNLn = ifelse(nr %in% 52:55, paste(labelNLnr, "**", sep = " | "), labelNLn),
          sideA = ifelse(nr %in% c(1:12, 29:38, 52:67), 1, 0),
-         sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2), 1, 0),
+         sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2, 68.3), 1, 0),
          A10 = ifelse(is.na(A10), 0, A10),
          A50 = ifelse(is.na(A50), 0, A50),
          A90 = ifelse(is.na(A90), 0, A90)
