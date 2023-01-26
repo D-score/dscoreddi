@@ -16,15 +16,31 @@ shinyServer(function(input, output) {
     # ahv voorgaand afgenomen items uit BDS item_candidates aanpassen en dynamisch maken, dan kunnen alleen items gesuggereerd worden die nog niet eerder zijn afgenomen; of herhaald moeten worden afgenomen.
     # volgende stap is het aanpassen van de highlight variabele door de ingevoerde van wiechen kenmerken tijdens het consult.
     pref <- reactive({
+        if(input$agemos < 15) {continuous_items <- prefdat %>% filter(nr %in% 52:54) %>% select(item)}
+        if(input$agemos >= 15){continuous_items <- length(0)}
 
-         item_candidates <- prefdat %>% filter(sideA==1 | sideB ==1) %>% select(item)
+        if(input$agemos < 3) {continuous_item55 <- prefdat %>% filter(nr == 55) %>% select(item)}
+        if(input$agemos >= 3){continuous_item55 <- length(0)}
+
+        item_candidates <- prefdat %>% filter((sideA==1 | sideB ==1) & !nr %in% 52:54) %>% select(item)
         itembank_candidates <- itembank %>% filter(item %in% item_candidates[[1]])
-        selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = expanded_reference, scalefactor = 2.099986, leniency = input$refperc, n = input$suggest)$item
+        selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = expanded_reference, population = "dutch", leniency = input$refperc, n = input$suggest)$item
+
 
             prefdat %>%
               filter(sideA==1 | sideB ==1) %>% #only use selection voor VWO
-            mutate(highlight = ifelse(item %in% selected_items, "#e6550d", "black"),
-                   bold = ifelse(item %in% selected_items, "bold", "plain"))
+            mutate(
+                   #high light continuous items blue.
+                   highlight = ifelse(item %in% c(continuous_items[[1]], continuous_item55[[1]]), "#3399ff", "black"),highlight = ifelse(item %in% selected_items, "#e6550d", highlight),
+                   bold = ifelse(item %in% c(selected_items, continuous_items[[1]], continuous_item55[[1]]), "bold", "plain"),
+                   ## dashed line for continuous items - remove estimated target age.
+                   cont1 = ifelse(nr %in% 52:54, 0, NA),
+                   cont2 = ifelse(nr %in% 52:54, 12, NA),
+                   cont1 = ifelse(nr == 55, 1, cont1),
+                   cont2 = ifelse(nr == 55, 3, cont2),
+                   A10 = ifelse(nr %in% 52:54, NA, A10),
+                   A50 = ifelse(nr %in% 52:54, NA, A50), #to not plot it but have it in the plot
+                   A90 = ifelse(nr %in% 52:54, NA, A90))
 
             #1A80C4 - blue color
             #31a354 - green color
@@ -46,10 +62,10 @@ shinyServer(function(input, output) {
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
             scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-            geom_hline(yintercept = input$agemos)+
+            geom_hline(yintercept = as.numeric(input$agemos))+
             coord_flip()+ xlab("") +
             theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
-            scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18),position = "right")+
+          scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,18),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
             ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
 
@@ -63,15 +79,17 @@ shinyServer(function(input, output) {
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
             scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-            geom_hline(yintercept = input$agemos)+
+            geom_hline(yintercept = as.numeric(input$agemos))+
             coord_flip() + xlab("") +
             theme(legend.position = "none", axis.text.y = element_text(face = cm_bold[[1]], color = cm_highlight[[1]])) +
-            scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18), position = "right")+
+          scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,18),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
             ggtitle("Communicatie")
 
 
         gm_highlight <- pref() %>% filter(domein == "Grove motoriek"& sideA == 1) %>%
             arrange(-nr) %>% select(highlight) #added
+        #add additional highlight categorie voor de ** items.
+
         gm_bold <- pref() %>% filter(domein == "Grove motoriek"& sideA == 1) %>%
           arrange(-nr) %>% select(bold)
 
@@ -80,13 +98,13 @@ shinyServer(function(input, output) {
                    aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
-            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-            geom_hline(yintercept = input$agemos)+
+            geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
+            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "#3399ff"= "#3399ff"))+ #added
+            geom_hline(yintercept = as.numeric(input$agemos))+
             coord_flip()+
             ylab("Leeftijd (maanden)") + xlab("") +
             theme(legend.position = "none", axis.text.y = element_text(face = gm_bold[[1]], color = gm_highlight[[1]])) +
-            scale_y_continuous(name = "Leeftijd (maanden)", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18),
-                               sec.axis = sec_axis(trans = ~(.*1), breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3))))+
+          scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,18),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
             ggtitle("Grove motoriek")
 
         allplotslist1 <- align_plots(fm1,cm1,gm1, align = "v")
@@ -113,10 +131,9 @@ shinyServer(function(input, output) {
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-        geom_hline(yintercept = input$agemos)+
+        geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+ xlab("") +
-      scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(0,50),position = "right")+
-        theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
+      scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(8,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+        theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
         ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
     cm_highlight <- pref() %>% filter(domein == "Communicatie"& sideB == 1) %>%
@@ -129,10 +146,10 @@ shinyServer(function(input, output) {
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-        geom_hline(yintercept = input$agemos)+
+        geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+ xlab("") +
         theme(legend.position = "none", axis.text.y = element_text(face = cm_bold[[1]], color = cm_highlight[[1]])) +
-        scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(8,50), position = "right")+
+      scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(8,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
         ggtitle("Communicatie")
 
     gm_highlight <- pref() %>% filter(domein == "Grove motoriek"& sideB == 1) %>%
@@ -144,11 +161,12 @@ shinyServer(function(input, output) {
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-        geom_hline(yintercept = input$agemos)+
+        geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+ xlab("") +
         theme(legend.position = "none", axis.text.y = element_text(face = gm_bold[[1]], color = gm_highlight[[1]])) +
-        scale_y_continuous(name = "Leeftijd (maanden)", breaks = seq(0,48,3), limits= c(8,50), sec.axis = sec_axis(trans = ~(.*1), breaks = seq(0,48,3)))+
+      scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(8,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
         ggtitle("Grove motoriek")
 
 
@@ -178,10 +196,10 @@ shinyServer(function(input, output) {
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-        geom_hline(yintercept = input$agemos)+
+        geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+
         theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
-        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
         xlab("")+
         ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
@@ -201,11 +219,11 @@ shinyServer(function(input, output) {
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-        geom_hline(yintercept = input$agemos)+
+        geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+
         xlab("") +
         theme(legend.position = "none", axis.text.y = element_text(face = cm_bold[[1]], color = cm_highlight[[1]])) +
-        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
         ggtitle("Communicatie")
 
       cm_dom
@@ -221,12 +239,13 @@ shinyServer(function(input, output) {
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
-        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
-        geom_hline(yintercept = input$agemos)+
+        geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "#3399ff"= "#3399ff"))+ #added
+        geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+
         xlab("") +
         theme(legend.position = "none", axis.text.y = element_text(face = gm_bold[[1]], color = gm_highlight[[1]])) +
-       scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+       scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
         ggtitle("Grove motoriek")
 
       gm_dom

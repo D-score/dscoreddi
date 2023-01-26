@@ -7,6 +7,7 @@ library(plotly)
 library(gridExtra)
 library(cowplot)
 library(openxlsx)
+library(dscoreddi)
 
 # Kans op behalen van mijlpalen
 
@@ -84,8 +85,12 @@ pref <- refdata %>%
          sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2), 1, 0),
          A10 = ifelse(is.na(A10), 0, A10),
          A50 = ifelse(is.na(A50), 0, A50),
-         A90 = ifelse(is.na(A90), 0, A90)
-
+         A90 = ifelse(is.na(A90), 0, A90),
+         cont1 = ifelse(nr %in% 52:55, 0, NA),
+         cont2 = ifelse(nr %in% 52:55, 12, NA),
+         A10 = ifelse(nr %in% 52:55, NA, A10),
+         A50 = ifelse(nr %in% 52:55, NA, A50), #to not plot it but have it in the plot
+         A90 = ifelse(nr %in% 52:55, NA, A90)
           ) %>%
   arrange(nr)
 
@@ -100,54 +105,6 @@ ddomain::get_color_domain("dutch")["Communication"]
 
 
 ## t/m 15 maanden
-
-fm <-
-ggplot(pref %>% filter(domein == "Fijne motoriek"& sideA == 1),  #A10 =< 15) %>% #selecteer milestons met A10 < 15 maanden >>wijzigen naar sizeA
-          aes(x = reorder(labelNLn, -nr),  y= A50)) +
-  geom_point()+
-  geom_errorbar(aes(ymin = A10, ymax = A90))+
-  coord_flip()+ xlab("") +
-  theme(legend.position = "none") +
-  scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(0,18),position = "right")+
-  ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
-
-cm <-
-ggplot(pref %>% filter(domein == "Communicatie"& sideA == 1), #selecteer milestons met A10 < 15 maanden
-        aes(x = reorder(labelNLn, -nr),  y= A50)) +
-  geom_point()+
-  geom_errorbar(aes(ymin = A10, ymax = A90))+
-  coord_flip() + xlab("") +
-  theme(legend.position = "none") +
-  scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(0,18), position = "right")+
-  ggtitle("Communicatie")
-
-gm <-
-ggplot(pref %>% filter(domein == "Grove motoriek" & sideA == 1), #selecteer milestons met A10 < 15 maanden
-
-       aes(x = reorder(labelNLn, -nr),  y= A50)) +
-  geom_point()+
-  geom_errorbar(aes(ymin = A10, ymax = A90))+
-  coord_flip()+
-  ylab("Leeftijd (maanden)") + xlab("") +
-  theme(legend.position = "none") +
-  scale_y_continuous(name = "Leeftijd (maanden)", breaks = seq(0,48,3), limits= c(0,18),
-                     sec.axis = sec_axis(trans = ~(.*1), breaks = seq(0,48,3)))+
-  ggtitle("Grove motoriek")
-
-
-
-allplotslist <- align_plots(fm,cm,gm, align = "v")
-
-m1 <- arrangeGrob(grobs = allplotslist, nrow = 3, ncol = 1, heights = c(11,9,15))
-
-
-pdf("results/percentiel_leeftijd_0-15m.pdf", onefile = TRUE, width = 10, height = 12)
-grid.arrange(m1)
-dev.off()
-
-
-
-
 ## with extra gridlines for first 12 months
 
 fm <-
@@ -157,7 +114,7 @@ fm <-
   geom_errorbar(aes(ymin = A10, ymax = A90))+
   coord_flip()+ xlab("") +
   theme(legend.position = "none") +
-  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18),position = "right")+
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,18),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
   ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
 cm <-
@@ -167,7 +124,7 @@ cm <-
   geom_errorbar(aes(ymin = A10, ymax = A90))+
   coord_flip() + xlab("") +
   theme(legend.position = "none") +
-  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18), position = "right")+
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,18),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
   ggtitle("Communicatie")
 
 gm <-
@@ -175,11 +132,11 @@ gm <-
          aes(x = reorder(labelNLn, -nr),  y= A50)) +
   geom_point()+
   geom_errorbar(aes(ymin = A10, ymax = A90))+
+  geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
   coord_flip()+
-  ylab("Leeftijd (maanden)") + xlab("") +
+  xlab("") +
   theme(legend.position = "none") +
-  scale_y_continuous(name = "Leeftijd (maanden)", breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3)), limits= c(0,18),
-                     sec.axis = sec_axis(trans = ~(.*1), breaks = c(0,1,2,3,4,5,6,7,8,9,10, seq(12,48,3))))+
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,18),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
   ggtitle("Grove motoriek")
 
 
@@ -204,8 +161,7 @@ fm <-
   geom_errorbar(aes(ymin = A10, ymax = A90))+
   coord_flip()+ xlab("") +
   theme(legend.position = "none") +
-  scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(8,48),position = "right")+
-  ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(8,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))  ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
 cm <-
   ggplot(pref %>% filter(domein == "Communicatie"& sideB == 1),#selecteer milestons met A10 < 15 maanden
@@ -214,8 +170,7 @@ cm <-
   geom_errorbar(aes(ymin = A10, ymax = A90))+
   coord_flip() + xlab("") +
   theme(legend.position = "none") +
-  scale_y_continuous(name = "", breaks = seq(0,48,3), limits= c(8,48), position = "right")+
-  ggtitle("Communicatie")
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(8,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))  ggtitle("Communicatie")
 
 gm <-
   ggplot(pref %>% filter(domein == "Grove motoriek" & sideB == 1), #selecteer milestons met A10 < 15 maanden
@@ -225,8 +180,7 @@ gm <-
   coord_flip()+
   ylab("Leeftijd (maanden)") + xlab("") +
   theme(legend.position = "none") +
-  scale_y_continuous(name = "Leeftijd (maanden)", breaks = seq(0,48,3), limits= c(8,48),
-                     sec.axis = sec_axis(trans = ~(.*1), breaks = seq(0,48,3)))+
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(8,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
   ggtitle("Grove motoriek")
 
 
@@ -255,7 +209,7 @@ fm_dom <-
     scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
     coord_flip()+
    # theme(legend.position = "none", axis.text.y = element_text(face = fm_bold[[1]], color = fm_highlight[[1]])) +
-  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
     xlab("")+
     ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
 
@@ -271,7 +225,7 @@ fm_dom <-
     scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
     coord_flip()+
     xlab("") +
-    scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+    scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
     ggtitle("Communicatie")
 
   cm_dom
@@ -282,10 +236,11 @@ fm_dom <-
            aes(x = reorder(labelNLn, -nr),  y= A50)) +
     geom_point()+
     geom_errorbar(aes(ymin = A10, ymax = A90))+
+    geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
     scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
     coord_flip()+
     xlab("") +
-    scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"))+
+    scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,12,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11,13,14,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
     ggtitle("Grove motoriek")
 
   gm_dom
