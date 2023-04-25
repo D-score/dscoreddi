@@ -29,7 +29,12 @@ shinyUI(
                         value = 90),
             bsTooltip("refperc", "Gewoonlijk worden kenmerken op het 90e percentiel afgenomen. Het 50e percentiel houdt in dat 50% van de kinderen het kenmerk op deze leeftijd kan.", placement = "top", options = list(container = "body")),
             br(),
-            numericInput("suggest", "Het aantal kenmerken om af te nemen", min = 0, max = 12, value = 6)
+            numericInput("suggest", "Het aantal kenmerken om af te nemen", min = 0, max = 12, value = 6),
+            br(),
+            br(),
+            br(),
+            p("Bron referenties:"), em("Van Buuren S (2014). Growth charts of human development. Stat Methods Med Res, 23(4), 346-
+368.")
 
 
           #  p("Hier kunnen we ook kenmerken die in eerdere contacten al zijn uitgevraagd ophalen. Deze kunnen we dan (1) uitsluiten als nieuwe suggesties en (2) gebruiken om de D-scores te bepalen van vorige contactmenten en te plotten in het D-score plot.")
