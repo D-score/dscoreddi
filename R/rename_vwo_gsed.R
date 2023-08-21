@@ -34,16 +34,16 @@ rename_vwo_gsed <- function(x, copy = TRUE, version = "2005"){
   #  git <- it[grepl("ddi",x = it$item),"item"]
   #  gnr <- substr(git, 7,9)
   #  y <- git[match(vnr, gnr)]
-   y <- itemtableVWO[match(x, itemtableVWO$ID.VWO2005),"item"]
+   y <- dscoreddi::itemtableVWO[match(x,  dscoreddi::itemtableVWO$ID.VWO2005),"item"]
 
   }
 
   if(version == "1996"){
-    y <- itemtableVWO[match(x, itemtableVWO$ID.VWO1996),"item"]
+    y <-  dscoreddi::itemtableVWO[match(x,  dscoreddi::itemtableVWO$ID.VWO1996),"item"]
   }
 
   if(version == "duchenne"){
-    y <- itemtableVWO[match(x, itemtableVWO$labelNL_duch), "item"]
+    y <-  dscoreddi::itemtableVWO[match(x,  dscoreddi::itemtableVWO$labelNL_duch), "item"]
   }
 
   if(copy)
