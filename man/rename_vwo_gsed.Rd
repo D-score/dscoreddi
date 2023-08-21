@@ -25,6 +25,7 @@ Rename VWO2005 item names to names in GSED format.
 The gsed-naming convention is as follows. Position 1-3 codes the
 instrument, position 4-5 codes the domain, position 6 codes
 direct/caregiver/message, positions 7-9 is a item sequence number.
+The object itemtableVWO is used as a renaming table.
 }
 \examples{
 rename_vwo_gsed("v1")
