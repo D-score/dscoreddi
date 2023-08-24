@@ -11,7 +11,7 @@ itemtableVWO <- read.xlsx("data-raw/data/VWO_itemtable.xlsx")
 #manual entry 7-5-2021 accounting assessment of v55 at 4 different occasions.
 #manual entry that updates column occ with the assessment month in JGZ (13-7-2021)
 #manual entry (7-9-2021): fix translation of English to Dutch labels - copied two items where two different gsed names are known for the same label (ddicmm040, ddicmd148: Understands play order/ Begrijps spelopdrachtjes) & (ddicmm035, ddicmm136: Reacts to verbal request/ reageert op modeling verzoek)
-
+#manual edits in mijlpalen (labelNL) voor afstemming met NCJ website (24-8-2023)
 
 usethis::use_data(itemtableVWO, overwrite = TRUE)
 
