@@ -16,11 +16,22 @@ theme_set(theme_light())
 
 
 itembank <- dscore::builtin_itembank %>% filter(key == "dutch") %>%
-  bind_rows(data.frame(item = "ddifmd028", tau = 72),
+  bind_rows(
+    data.frame(item = "ddicmm032", tau = 25.25), #lineare interpolatie 031[tau = 14.5]-033[tau = 36]
+    data.frame(item = "ddicmm038", tau = 52), #lineare interpolatie 037[tau=50.1]-039[tau=53.2]
+    data.frame(item = "ddifmd028", tau = 72),
             data.frame(item = "ddicmm051", tau = 74),
             data.frame(item = "ddigmd075", tau = 72)
-  )
+  ) %>%
+  mutate(item = ifelse(item == "ddicmd136", "ddicmm035", item),
+         item = ifelse(item == "ddicmd148", "ddicmm040", item))
 
+##note voor overgang naar gsed itembank missen we van meer kenmerken de D-score.
+#itembank <- dscore::builtin_itembank %>% filter(key == "gsed2212") %>%
+#  bind_rows(data.frame(item = "ddifmd028", tau = 72),
+#            data.frame(item = "ddicmm051", tau = 74),
+#            data.frame(item = "ddigmd075", tau = 72)
+#  )
 
 #expand reference with a count model (based on dmetric/expand_referenced.Rmd)
 #44.35 - 1.8 * t + 28.47 * log(t + 0.25)
@@ -31,6 +42,9 @@ expanded_reference <- dscore::get_reference(population = "dutch") %>%
   mutate(
     mu1 = mu,
     mu = ifelse(is.na(mu), 44.35 - 1.8 * age + 28.47 * log(age + 0.25), mu))
+
+#expanded_reference <- dscore::get_reference(population = "phase1") %>%
+#  select(pop, age, mu)
 
 refdata <- dmetric::calculate_age_equivalents(itembank = itembank, scalefactor = 2.099986, p = c(10, 50, 90), reference = expanded_reference)
 
@@ -45,8 +59,8 @@ prefdat <- refdata %>%
   #rename(leeftijd = A) %>%
   left_join(itemtableVWO %>% select(item, labelNL, ID.VWO2005, month), by = "item") %>%
   mutate(nr = as.numeric(substr(item, 7, 9)),
-         nr = ifelse(nr == 136, 35, nr),
-         nr = ifelse(nr == 148, 40, nr),
+        # nr = ifelse(nr == 136, 35, nr), #dubbel met nr 035? -- 035 zit neit in model; 136 wel - wijzig op voorhand
+        # nr = ifelse(nr == 148, 40, nr), #dubbel met nr 040? -- 040 zit niet in model; 148 wel - wijzig op voorhand
          nr = ifelse(nr == 068, 68.1, nr),
          nr = ifelse(nr == 168, 68.2, nr),
          nr = ifelse(nr == 268, 68.3, nr),

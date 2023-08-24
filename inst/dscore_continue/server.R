@@ -1,15 +1,5 @@
-#
-# This is the server logic of a Shiny web application. You can run the
-# application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
 
-# Define server logic required to draw a histogram
 shinyServer(function(input, output) {
 
     #reference data, with additional column for start-items based on input$refperc en highlights voor geselecteerde start-items based on input$agemos en input$suggest.
@@ -112,7 +102,7 @@ shinyServer(function(input, output) {
 
         allplotslist1 <- align_plots(fm1,cm1,gm1, align = "v")
 
-        m1 <- arrangeGrob(grobs = allplotslist1, nrow = 3, ncol = 1, heights = c(11,9,15))
+        m1 <- arrangeGrob(grobs = allplotslist1, nrow = 3, ncol = 1, heights = c(11,10,15))
         grid.arrange(m1)
 
 
@@ -176,7 +166,7 @@ shinyServer(function(input, output) {
 
     allplotslist <- align_plots(fm2,cm2,gm2, align = "v")
 
-    m1 <- arrangeGrob(grobs = allplotslist, nrow = 3, ncol = 1, heights = c(11.5,10,9))
+    m1 <- arrangeGrob(grobs = allplotslist, nrow = 3, ncol = 1, heights = c(11.5,11,9))
 
 
     grid.arrange(m1)
