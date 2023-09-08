@@ -38,7 +38,9 @@ pass <-
               a = mean(agemos),
               n = n()) %>%
     ungroup %>%
-    left_join(dscore::get_itemtable(), by = "item")
+    left_join(dscore::get_itemtable(), by = "item") %>%
+  left_join({dscoreddi::itemtableVWO %>% select(item, labelNL)}, by = "item") %>%
+  mutate(item_wlab = paste(item, labelNL))
 
 refdata <- dmetric::calculate_age_equivalents(model = model_input$model, p = seq(1,99, 1), reference = dscore::get_reference(population = "dutch"))
 
@@ -54,7 +56,8 @@ pref <- refdata %>%
                                           "gm" = "Gross motor"))) %>%
   left_join({dscoreddi::itemtableVWO %>% select(item, labelNL, ID.VWO2005)}, by = "item") %>%
   mutate(labelNL = ifelse(item == "ddicmd148", "Begrijpt spelopdrachtjes (M)", labelNL),
-         labelNL = ifelse(item == "ddicmd136", "Reageert op mondeling verzoek (M)", labelNL)) %>%
+         labelNL = ifelse(item == "ddicmd136", "Reageert op mondeling verzoek (M)", labelNL),
+         item_wlab = paste(item, labelNL)) %>%
          drop_na(labelNL)
 
 

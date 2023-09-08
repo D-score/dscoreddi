@@ -49,7 +49,7 @@ server <- function(input, output, session) {
     ##p_a_model --------------
 
     pam_ls = reactive({
-        mixedsort(unique(pref$item))
+        mixedsort(unique(pref$item_wlab))
     })
 
     count_pam <- reactiveVal(1)
@@ -86,7 +86,8 @@ server <- function(input, output, session) {
 
     output$plots_p_a_model <- renderPlotly({
 
-        plotdata <- pref %>% filter(item == pam_ls()[which(pam_ls() == input$pam_list)])
+
+        plotdata <- pref %>% filter(item == substr(pam_ls()[which(pam_ls() == input$pam_list)], 1, 9))
         the_label  <- plotdata$labelNL[1]
         if(is.na(the_label)) the_label <- plotdata$label[1]
         the_label <- substr(the_label, 1L, 60L)
@@ -121,7 +122,7 @@ server <- function(input, output, session) {
     ##p_a_obs --------------
 
     pai_ls = reactive({
-        mixedsort(unique(pass$item))
+        mixedsort(unique(pass$item_wlab))
     })
 
     count_pai <- reactiveVal(1)
@@ -155,8 +156,10 @@ server <- function(input, output, session) {
     })
 
     output$plots_p_a_item <- renderPlot({
+
+      selecteditem <- substr(pai_ls()[which(pai_ls() == input$pai_list)], 1, 9)
         print(dmetric::plot_p_a_item(pass = pass,
-                                     items = pai_ls()[which(pai_ls() == input$pai_list)],
+                                     items = selecteditem,
                                      xlim = c(0, 36))
         )
     })
