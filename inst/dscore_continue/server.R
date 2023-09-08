@@ -6,7 +6,9 @@ shinyServer(function(input, output) {
     # ahv voorgaand afgenomen items uit BDS item_candidates aanpassen en dynamisch maken, dan kunnen alleen items gesuggereerd worden die nog niet eerder zijn afgenomen; of herhaald moeten worden afgenomen.
     # volgende stap is het aanpassen van de highlight variabele door de ingevoerde van wiechen kenmerken tijdens het consult.
     pref <- reactive({
+
       continuous_items <- continuous_item55 <- selected_items <- length(0)
+
       if(!is.na(input$agemos)){
         if(input$agemos < 15) {continuous_items <- prefdat %>% filter(nr %in% 52:54) %>% pull(item)}
         if(input$agemos >= 15){continuous_items <- length(0)}
@@ -14,16 +16,26 @@ shinyServer(function(input, output) {
         if(input$agemos < 3) {continuous_item55 <- prefdat %>% filter(nr == 55) %>% pull(item)}
         if(input$agemos >= 3){continuous_item55 <- length(0)}
 
-        item_candidates <- prefdat %>% filter((sideA==1 | sideB ==1) & !nr %in% 52:54) %>% pull(item)
-        itembank_candidates <- itembank %>% filter(item %in% item_candidates)
-        selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = expanded_reference, population = "dutch", leniency = input$refperc, n = input$suggest)$item
+        item_candidates <- prefdat %>%
+          filter((sideA==1 | sideB ==1) & !nr %in% 52:54) %>%
+          filter(!item %in% passed_items) %>% #excluded passed items
+          pull(item)
+
+        itembank_candidates <- itembank_vwc %>%
+          filter(item %in% item_candidates)
+
+        selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = dscoreddi::expanded_reference, population = "dutch", leniency = input$refperc, n = input$suggest)$item
     }
 
-            prefdat %>%
+            dscoreddi::prefdat %>%
               filter(sideA==1 | sideB ==1) %>% #only use selection voor VWO
             mutate(
                    #high light continuous items blue.
-                   highlight = ifelse(item %in% c(continuous_items, continuous_item55), "#3399ff", "black"),highlight = ifelse(item %in% selected_items, "#e6550d", highlight),
+                   highlight = ifelse(item %in% c(continuous_items, continuous_item55), "#3399ff", "black"),
+                   highlight = ifelse(item %in% selected_items, "#e6550d", highlight),
+                   #already passed as grey
+                   highlight = ifelse(item %in% passed_items, "grey60", highlight),
+
                    bold = ifelse(item %in% c(selected_items, continuous_items, continuous_item55), "bold", "plain"),
                    ## dashed line for continuous items - remove estimated target age.
                    cont1 = ifelse(nr %in% 52:54, 0, NA),
@@ -54,7 +66,7 @@ shinyServer(function(input, output) {
                    aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) + #changed
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
-            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
             geom_hline(yintercept = as.numeric(input$agemos))+
             coord_flip()+ xlab("") +
             theme(legend.position = "none", axis.text.y = element_text(face = fm_bold, color = fm_highlight)) +
@@ -71,7 +83,7 @@ shinyServer(function(input, output) {
                    aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
-            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
             geom_hline(yintercept = as.numeric(input$agemos))+
             coord_flip() + xlab("") +
             theme(legend.position = "none", axis.text.y = element_text(face = cm_bold, color = cm_highlight)) +
@@ -92,7 +104,7 @@ shinyServer(function(input, output) {
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
             geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
-            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "#3399ff"= "#3399ff"))+ #added
+            scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "#3399ff"= "#3399ff", "grey60" = "grey60"))+ #added
             geom_hline(yintercept = as.numeric(input$agemos))+
             coord_flip()+
             ylab("Leeftijd (maanden)") + xlab("") +
@@ -102,7 +114,7 @@ shinyServer(function(input, output) {
 
         allplotslist1 <- align_plots(fm1,cm1,gm1, align = "v")
 
-        m1 <- arrangeGrob(grobs = allplotslist1, nrow = 3, ncol = 1, heights = c(11,10,15))
+        m1 <- arrangeGrob(grobs = allplotslist1, nrow = 3, ncol = 1, heights = c(11,10.5,15))
         grid.arrange(m1)
 
 
@@ -123,7 +135,7 @@ shinyServer(function(input, output) {
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
-        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
         geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+ xlab("") +
       scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(8,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+        theme(legend.position = "none", axis.text.y = element_text(face = fm_bold, color = fm_highlight)) +
@@ -138,7 +150,7 @@ shinyServer(function(input, output) {
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
-        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
         geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+ xlab("") +
         theme(legend.position = "none", axis.text.y = element_text(face = cm_bold, color = cm_highlight)) +
@@ -155,7 +167,7 @@ shinyServer(function(input, output) {
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
 
-        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
         geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+ xlab("") +
         theme(legend.position = "none", axis.text.y = element_text(face = gm_bold, color = gm_highlight)) +
@@ -188,7 +200,7 @@ shinyServer(function(input, output) {
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
-        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
         geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+
         theme(legend.position = "none", axis.text.y = element_text(face = fm_bold, color = fm_highlight)) +
@@ -211,7 +223,7 @@ shinyServer(function(input, output) {
                aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
-        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
         geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+
         xlab("") +
@@ -233,7 +245,7 @@ shinyServer(function(input, output) {
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
-        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "#3399ff"= "#3399ff"))+ #added
+        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "#3399ff"= "#3399ff", "grey60" = "grey60"))+ #added
         geom_hline(yintercept = as.numeric(input$agemos))+
         coord_flip()+
         xlab("") +
@@ -257,17 +269,17 @@ shinyServer(function(input, output) {
 
 
  ####---- D-score demo plot
-    output$Dscoreplot <- renderPlot({
-
-        ggplot()+
-            geom_line(data =references, aes(x = month, y = d, group = centile), color = "#e6550d", size = 0.8, alpha = 0.5) +
-            geom_point(data = childdat, aes(x = month, y = d), size = 2)+
-            geom_line(data = childdat, aes(x = month, y = d), size = 1)+
-
-            ylab("D-score") +
-            scale_x_continuous("Leeftijd (in maanden)", limits = c(0,36),
-                               breaks = seq(0, 36, 3))
-
-    })
+    # output$Dscoreplot <- renderPlot({
+    #
+    #     ggplot()+
+    #         geom_line(data =references, aes(x = month, y = d, group = centile), color = "#e6550d", size = 0.8, alpha = 0.5) +
+    #         geom_point(data = childdat, aes(x = month, y = d), size = 2)+
+    #         geom_line(data = childdat, aes(x = month, y = d), size = 1)+
+    #
+    #         ylab("D-score") +
+    #         scale_x_continuous("Leeftijd (in maanden)", limits = c(0,36),
+    #                            breaks = seq(0, 36, 3))
+    #
+    # })
 
 })
