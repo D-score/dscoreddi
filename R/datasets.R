@@ -27,3 +27,27 @@ NULL
 #' @references \url{ddata package}
 "smoccmodel"
 
+#' This is data to be included in my package
+#'
+#' @author iris eekhout
+#' @docType data
+#' @references \url{dscoreddi package}
+"expanded_reference"
+
+
+#' This is data to be included in my package
+#'
+#' @author iris eekhout
+#' @docType data
+#' @references \url{dscoreddi package}
+"itembank_vwc"
+
+
+
+#' This is data to be included in my package
+#'
+#' @author iris eekhout
+#' @docType data
+#' @references \url{dscoreddi package}
+"prefdat"
+
