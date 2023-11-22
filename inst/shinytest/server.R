@@ -34,8 +34,6 @@ function(input, output, session) {
                       geom_line(data =references, aes(x = month, y = d, group = centile), color = "#e6550d", size = 0.8, alpha = 0.5) +
                       geom_point(data = childdat, aes(x = month, y = d), size = 2)+
                       geom_line(data = childdat, aes(x = month, y = d), size = 1)+
-        geom_point(data = childdat2, aes(x = month, y = d), size = 2, color = "darkblue")+
-        geom_line(data = childdat2, aes(x = month, y = d), size = 1, color = "darkblue")+
                       ylab("D-score") +
                       scale_x_continuous("Leeftijd (in maanden)", limits = c(0,36),
                                          breaks = seq(0, 36, 3))
