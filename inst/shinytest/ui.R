@@ -1,5 +1,5 @@
 library(shiny)
-library(ggplot2)
+library(plotly)
 library(dscore)
 
 # Define UI for application that draws a histogram
@@ -9,7 +9,8 @@ fluidPage(
     titlePanel("Test application for speed"),
 
         mainPanel(
-            plotOutput("distPlot")
+         plotOutput("ggplottest"),
+         plotlyOutput("plotlytest")
         )
     #)
 )

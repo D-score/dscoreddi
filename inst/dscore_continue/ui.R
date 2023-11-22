@@ -79,7 +79,7 @@ shinyUI(
                          )
 
                 )#,
-               # tabPanel("D-score curve", plotOutput("Dscoreplot", height = 800))
+                #tabPanel("Testpage", plotOutput("plotlytry"))
             )
         )
     )

@@ -2,14 +2,15 @@
 
 load("~/Documents/GitHub/dmetric/data/smoccmodel.rda")
 
-library(dmetric)
+library(dscoreddi)
 library(dplyr)
 library(tidyr)
 library(dscore)
+library(dmetric)
 
 gcdg_lean
 
-plot_p_d_item(data = gcdg_lean , model = smoccmodel)
+plot_p_d_item(data = data , model = smoccmodel, items = "ddigmd070")
 
 
 model <- smoccmodel$model
@@ -119,7 +120,9 @@ p1 <- ggplot(pref, aes(x = A, y = percentile, group = item, color = domain))+
   xlab("Age (months)") +
   ylab("Probability to pass")
 
-ggplotly(p1)
+p1
+
+
 
 
 
