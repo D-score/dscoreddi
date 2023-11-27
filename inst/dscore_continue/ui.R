@@ -58,21 +58,21 @@ shinyUI(
                          )
                          ),
                 tabPanel("VWO Fijne motoriek",
-                         plotOutput("VWOfinemotor", height = 800),
+                         plotlyOutput("VWOfinemotor", height = 800),
                          tags$div(
                            tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
                            tags$span("Kenmerken die passen bij de instellingen zijn gekleurd.", style= "color:#e6550d"),tags$br(), tags$span("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind.")
                          )
                 ),
                 tabPanel("VWO Communicatie",
-                         plotOutput("VWOcommunication", height = 800),
+                         plotlyOutput("VWOcommunication", height = 800),
                          tags$div(
                            tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
                            tags$span("Kenmerken die passen bij de instellingen zijn gekleurd.", style= "color:#e6550d"),tags$br(), tags$span("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind.")
                          )
                 ),
                 tabPanel("VWO Grove motoriek",
-                         plotOutput("VWOgrovemotor", height = 800),
+                         plotlyOutput("VWOgrovemotor", height = 800),
                          tags$div(
                           tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
                           tags$span("** = Kenmerk herhalen gedurende eerste 52 weken.", style = "color:#3399ff;"), tags$span("Kenmerken die passen bij de instellingen zijn gekleurd.", style= "color:#e6550d"),tags$br(), tags$span("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind.")
