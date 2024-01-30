@@ -33,8 +33,21 @@ shinyUI(
             br(),
             br(),
             br(),
-            p("Bron referenties:"), em("Van Buuren S (2014). Growth charts of human development. Stat Methods Med Res, 23(4), 346-
-368.")
+            hr(),
+            p("Bron referenties:"), em("Van Buuren S (2014). Growth charts of human development. Stat Methods Med Res, 23(4), 346-368."),
+            hr(),
+            div(HTML("&copy; Copyright, TNO 2024"),
+                style = "
+                 position:fixed;
+                 bottom:10.5px;
+                 width: 100%;
+                 height:20px;
+                 color: black;
+                 padding: 0px;
+                 z-index: 100;
+                 background-color: blanc;
+                 align:right;
+                ")
 
 
           #  p("Hier kunnen we ook kenmerken die in eerdere contacten al zijn uitgevraagd ophalen. Deze kunnen we dan (1) uitsluiten als nieuwe suggesties en (2) gebruiken om de D-scores te bepalen van vorige contactmenten en te plotten in het D-score plot.")

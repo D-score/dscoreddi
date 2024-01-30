@@ -1,7 +1,9 @@
 
 
 ## global for van wiechen continue
+## versie voor in iJGZ systeem
 library(ggplot2)
+library(plotly)
 library(dplyr)
 library(tidyr)
 library(dscore)
@@ -35,6 +37,7 @@ continuous_items <- continuous_item55 <- selected_items <- length(0)
 agemos <- 6
 suggest <- 4
 refperc <- 70
+
 if(!is.na(agemos)){
 
   if(agemos < 15) {continuous_items <- prefdat %>% filter(nr %in% 52:54) %>% pull(item)}
