@@ -33,7 +33,7 @@ dcat_algorithm2 <- function (itembank, p_start = 50, p_next = 50, data = NULL, s
   if (is.null(min_length)) {
     min_length <- 0
   }
-  start_it <- dcat_start(itembank = itembank_candidates, p = p_start,
+  start_it <- dinstrument::dcat_start(itembank = itembank_candidates, p = p_start,
                          age = age, scalefactor = scalefactor, reference= reference)
   item <- start_it[, "item"]
   itembank_candidates <- itembank_candidates[-which(itembank_candidates[,
@@ -47,7 +47,7 @@ dcat_algorithm2 <- function (itembank, p_start = 50, p_next = 50, data = NULL, s
                                   itembank = itembank)
   if (dens) {
     qp <- -10:100
-    mu <- count_mu_gcdg(age)
+    mu <- dscore::count_mu_gcdg(age)
     dscore_start <- stats::dnorm(qp, mu, 5)
     dscore_qp[[item]] <- qp
     dscore_post[[item]] <- dscore::dscore_posterior(data = df1,
@@ -58,14 +58,14 @@ dcat_algorithm2 <- function (itembank, p_start = 50, p_next = 50, data = NULL, s
   dscores <- c(dscores, dscore_n_full$d)
   sems <- c(sems, dscore_n_full$sem)
   dazs <- c(dazs, dscore_n_full$daz)
-  sdm2_age <- approx(x = reference$age, y = reference$SDM2,
+  sdm2_age <- stats::approx(x = reference$age, y = reference$SDM2,
                      xout = age, rule = 2)$y
   if (!is.na(dscore_n) & dscore_n < sdm2_age) {
     min_length <- min_m2sd
   }
   while (length(items) < max_length & (length(items) < min_length |
                                        (!is.na(dscore_sem & dscore_sem > stop_sem)))) {
-    next_it <- dcat_next(itembank = itembank_candidates,
+    next_it <- dinstrument::dcat_next(itembank = itembank_candidates,
                          p = p_next, dscore = dscore_n)
     item <- next_it[, "item"]
     itembank_candidates <- itembank_candidates[-which(itembank_candidates[,
@@ -75,7 +75,7 @@ dcat_algorithm2 <- function (itembank, p_start = 50, p_next = 50, data = NULL, s
     scores <- c(scores, answer)
     df1 <- data.frame(matrix(c(age, scores), nrow = 1))
     colnames(df1) <- c("age", items)
-    sdm2_age <- approx(x = reference$age, y = reference$SDM2,
+    sdm2_age <- stats::approx(x = reference$age, y = reference$SDM2,
                        xout = age, rule = 2)$y
     dscore_n_full <- dscore::dscore(data = df1, items = items,
                                     itembank = itembank)
