@@ -7,10 +7,12 @@ library(dplyr)
 library(tidyr)
 library(dscore)
 library(dscoreddi)
+library(bdsreader)
+library(jamesdemodata)
 
 #fixed input for vwc plots
 theme_set(theme_light())
-linecolors <-  c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60", "#3399ff" = "#3399ff", "salmon"="salmon")
+linecolors <-  c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60", "#3399ff" = "#3399ff", "maroon"="maroon")
 major <- c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3))
 minor <- c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50)
 xtick <- c(major, minor) %>% sort
@@ -23,6 +25,15 @@ library(bdsreader)
 fn_o <- system.file("extdata", "bds_v2.0", "smocc", "Laura_S.json", package = "jamesdemodata")
 tgt <- read_bds(fn_o, append_ddi = TRUE)
 tgt$psn$dob <- "2021-01-21"
+fn_o <- system.file("extdata", "bds_v2.0", "smocc", "Thomas_S.json", package = "jamesdemodata")
+tgt <- read_bds(fn_o, append_ddi = TRUE)
+tgt$psn$dob <- "2021-01-18"
+fn_o <- system.file("extdata", "bds_v2.0", "smocc", "Mark_S.json", package = "jamesdemodata")
+tgt <- read_bds(fn_o, append_ddi = TRUE)
+tgt$psn$dob <- "2021-02-14"
+fn_o <- system.file("extdata", "bds_v2.0", "smocc", "Iris_S.json", package = "jamesdemodata")
+tgt <- read_bds(fn_o, append_ddi = TRUE)
+tgt$psn$dob <- "2021-02-16"
 
 #functions to extract relevant information from the bds data.
 #data is the list of xyz data, so tgt$xyz
@@ -82,6 +93,9 @@ get_dhistory <- function(data){
 
 }
 
+
+vw_history <- get_vwhistory(tgt$xyz)
+d_history <- get_dhistory(tgt$xyz)
 #notes:
 #(1) what to do with walking items (3 items related to age, so translate to practical application into these three items)
 #(2) ddigmd255 not showing, why?

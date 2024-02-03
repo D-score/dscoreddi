@@ -16,7 +16,7 @@ shinyUI(
         sidebarPanel(width = 2,
             p("Dit is een tool om te helpen met het selecteren van Van Wiechen kenmerken voor flexibele contactmomenten. Hieronder kun je de leeftijd van het kind, het percentiel (gewoonlijk P90 - 90% van de kinderen behaalt het kenmerk), en het aantal gewenste kenmerken aanpassen."),
             br(),
-            h2("Instellingen"),
+            h3("Instellingen"),
             br(),
 
             numericInput("agemos", "Leeftijd kind in maanden", min = 0, max = 50, value = character(0)),
@@ -59,6 +59,7 @@ shinyUI(
             tabsetPanel(
 
                 tabPanel("VWO Fijne motoriek",
+                         h4("Fijne motoriek"),
                          plotlyOutput("VWOfinemotor", height = 800),
                          tags$div(
                            tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
@@ -66,6 +67,8 @@ shinyUI(
                          )
                 ),
                 tabPanel("VWO Communicatie",
+                         h4("Communicatie"),
+
                          plotlyOutput("VWOcommunication", height = 800),
                          tags$div(
                            tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
@@ -73,6 +76,8 @@ shinyUI(
                          )
                 ),
                 tabPanel("VWO Grove motoriek",
+                         h4("Grove motoriek"),
+
                          plotlyOutput("VWOgrovemotor", height = 800),
                          tags$div(
                           tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
