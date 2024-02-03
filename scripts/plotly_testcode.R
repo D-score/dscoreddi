@@ -1,9 +1,56 @@
 ##plotly_testcode
+linecolors <-  c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60", "#3399ff" = "#3399ff", "maroon"="maroon")
 
 
 continuous_items <- continuous_item55 <- selected_items <- passed_items <- failed_items <-  length(0)
 
-agemos <- 6
+fn_o <- system.file("extdata", "bds_v2.0", "smocc", "Iris_S.json", package = "jamesdemodata")
+tgt <- read_bds(fn_o, append_ddi = TRUE)
+tgt$psn$dob <- "2021-02-16"
+
+get_vwhistory <- function(data){
+    data|>
+    filter(grepl("^ddi", yname)) |>
+    dplyr::select(age, yname, y) |>
+    rename(item = yname, value = y) |>
+    mutate(item = ifelse(item == "ddigmd055" & (age > 0.5   / 365.25 & age < 42.5  / 365.25),
+                         "ddigmd155", item),
+           item = ifelse(item == "ddigmd055" & (age > 42.5   / 365.25 & age < 102.5  / 365.25),
+                         "ddigmd255", item),
+           item = ifelse(item == "ddigmd055" & (age > 105.5   / 365.25 & age < 146.5  / 365.25),
+                         "ddigmd355", item),
+           value = ifelse(item == "ddigmd055" & (age < 146.5 / 365.25 | age > 1),
+                          NA, value),
+           item = ifelse(item == "ddigmd068" & (age > 1.75 & age < 2.5),
+                         "ddigmd168", item),
+           item = ifelse(item == "ddigmd068" & (age > 2.5 & age < 3.5),
+                         "ddigmd268", item),
+           value = ifelse(item == "ddigmd068" & (age < 0.75 & age > 1.75),
+                          NA, value)
+      )
+  }
+passed_items <-
+  get_vwhistory(tgt$xyz) |>
+    filter(value == 1) |>
+    group_by(item) |>
+    slice_max(age, n = 1) |>
+    mutate(agemos = age *12) |>
+    dplyr::select(agemos, item)
+
+
+failed_items <-
+  get_vwhistory(tgt$xyz) |>
+    group_by(item) |>
+    slice_max(value) |>
+    filter(value == 0) |>
+    slice_max(age, n = 1) |>
+    mutate(agemos = age *12) |>
+    dplyr::select(agemos, item)
+
+
+
+
+agemos <- 36
 suggest <- 4
 refperc <- 70
 if(!is.na(agemos)){
@@ -29,11 +76,17 @@ pref <-
   dscoreddi::prefdat %>%
   filter(sideA==1 | sideB ==1) %>% #only use selection voor VWO
   mutate( #already passed as grey
-    highlight = ifelse(item %in% passed_items, "grey60", "black"),
-    highlight = ifelse(item %in% failed_items, "salmon", highlight),
+    #already passed as grey
+    highlight = ifelse(item %in% passed_items$item, "grey60", "black"),
+    #previously fail as maroon
+    highlight = ifelse(item %in% failed_items$item, "maroon", highlight),
+    #continuous items blue.
+    highlight = ifelse(item %in% c(continuous_items, continuous_item55), "#3399ff", highlight ),
+    #suggested items as orange
+    highlight = ifelse(item %in% selected_items, "#e6550d", highlight),
     #high light continuous items blue.
     highlight = ifelse(item %in% c(continuous_items, continuous_item55), "#3399ff", highlight ),
-    highlight = ifelse(item %in% selected_items, "#e6550d", highlight),
+
     bold = ifelse(item %in% c(selected_items, continuous_items, continuous_item55), "bold", "plain"),
     ## dashed line for continuous items - remove estimated target age.
     cont1 = ifelse(nr %in% 52:54, 0, NA),
@@ -74,7 +127,17 @@ xtick <- c(major, minor) %>% sort
 xtick_text <- ifelse(xtick %in% major, xtick, "")
 
 # No Problem
-  ggplotly(gm_dom, tooltip = "label") %>%
+gg2list(gm_dom)
+pbase <- ggplotly(gm_dom, tooltip = "label")
+
+pbase$x$data[[1]]
+
+ data[2].marker.color
+
+str(plotly_build(pbase)$x$data)
+
+
+pbase %>%
     add_markers(data = NULL, inherit = TRUE, xaxis = "x2") %>%
     layout(
   xaxis = list(
@@ -97,3 +160,80 @@ gm_dom %>%
   ggplotly(layerData = 2, originalData = FALSE) %>%
   plotly_data()
 
+
+
+
+##basic plot for gm:
+dscoreddi::prefdat %>%
+  rename(kenmerk = labelNL) %>%
+  filter(sideA==1 | sideB ==1) %>%
+  filter(domein == "Grove motoriek") %>%
+  mutate(labelNLn = forcats::fct_reorder(labelNLn, desc(nr))) %>%
+  arrange(desc(nr)) %>%
+  plot_ly(x = ~A50, y= ~labelNLn, hoverinfo = "text") %>%
+    add_segments(x = ~A10, y = ~labelNLn,
+                 xend = ~A90, yend = ~labelNLn,
+                 color = I("black"),
+                 showlegend = FALSE
+    )%>%
+  #deze veroorzaakt nu oranje stippen!!! dat moet weg!!!
+ add_markers(xaxis = "x2", inherit = TRUE, data = NULL) %>%
+
+  add_markers(
+    x = ~A10,
+    y = ~labelNLn,
+    color = I("black"),
+    text = ~kenmerk,
+    marker = list(symbol = "line-ns",
+                  size = 3,
+                  line = list(
+                    color = "black",
+                    width = 2
+                  )
+    ),
+    showlegend = FALSE
+
+    ) %>%
+  add_markers(
+    x = ~A50,
+    y = ~labelNLn,
+    color = I("black"),
+    text = ~kenmerk,
+    showlegend = FALSE
+  ) %>%
+  add_markers(
+    x = ~A90,
+    y = ~labelNLn,
+    color = I("black"),
+    text = ~kenmerk,
+    marker = list(symbol = "line-ns",
+                  size = 3,
+                  line = list(
+                    color = "black",
+                    width = 2
+                    )
+                  ),
+    showlegend = FALSE
+    ) %>%
+  layout(
+    xaxis = list(
+      title = "",
+      tickvals = xtick,
+      zeroline = FALSE,
+      showgrid = TRUE,
+      range = c(0,50),
+      ticktext = xtick_text),
+    xaxis2 = list(
+      overlaying = "x",
+      tickvals = xtick,
+      ticktext = xtick_text,
+      range = c(0,50),
+      side = "top",
+      showgrid = FALSE,
+      zeroline = FALSE,
+      tickfont = list(size = 11)
+    ),
+    yaxis = list(
+      title = ""
+    )
+  )
