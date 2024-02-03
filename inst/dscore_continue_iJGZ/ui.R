@@ -59,7 +59,7 @@ shinyUI(
             tabsetPanel(
 
                 tabPanel("VWO Fijne motoriek",
-                         plotlyOutput("VWOfinemotor", height = 800),
+                         plotlyOutput("VWOfinemotor", height = 600),
                          tags$div(
                            tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
                            tags$span("Kenmerken die passen bij de instellingen zijn oranje gekleurd.", style= "color:#e6550d"),tags$br(), tags$span("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind."),tags$span("Voor reeds behaalde kenmerken zijn de lijnen grijs gekleurd en voor kenmerken eerder afgenomen maar (nog) niet behaald zijn de lijnen lichtrood.")
