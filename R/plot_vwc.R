@@ -38,17 +38,30 @@ plot_vwc <- function(
   if(!is.null(vw_history)){
     vwhist <-
       vw_history |>
-      #admin = for each item the age of first pass, or last fail
-      group_by(.data$item) |>
-      mutate(pass = ifelse(any(.data$value == 1), 1, 0)) |>
-      filter(.data$value == .data$pass) |>
-      group_by(.data$item) |>
-      mutate(admin = ifelse(.data$pass == 1, min(.data$age), max(.data$age)))|>
-      group_by(.data$item)|>
-      slice(1) |> #laatste meting
-      mutate(admin = .data$admin * 12,
-             admintxt = ifelse(.data$value == 0, paste("niet behaald in maand", round(.data$admin, 0)), paste("behaald in maand", round(.data$admin, 0))))|>
-      dplyr::select(.data$item, .data$value, .data$admin, .data$admintxt)
+      mutate(agemos = age * 12) |>
+      group_by(.data$item, .data$value) |>
+      summarise(firstage = min(.data$agemos),
+                lastage = max(.data$agemos),
+                .groups = "drop") |>
+      pivot_wider(names_from = "value", values_from = c("firstage", "lastage")) |>
+      left_join({pref |> select(item, month)}, by = "item") |>
+      mutate(
+        value = NA,
+        #als nooit behaald, value negatief
+        value = ifelse(is.na(.data$firstage_1), "neg", .data$value),
+        #als eerste pass voor month dan value positief, als eerste pass na month dan value negatief
+        value = ifelse(!is.na(.data$firstage_1) & round(.data$firstage_1,0) <= .data$month, "pos", .data$value),
+        value = ifelse(!is.na(.data$firstage_1) & round(.data$firstage_1,0) >  .data$month, "neg", .data$value),
+
+        #als laatste fail na cm_age value == 0 en lastage_0 behouden
+        value = ifelse(!is.na(.data$lastage_0) & round(.data$lastage_0, 0) > .data$month, "neg", .data$value),
+
+        lastage_0 = ifelse(!is.na(.data$firstage_1) & .data$lastage_0 < .data$month, NA, .data$lastage_0),
+
+        passtxt = ifelse(!is.na(.data$firstage_1), paste("eerst behaald in maand:", round(.data$firstage_1,0)), NA),
+        failtxt = ifelse(!is.na(.data$lastage_0), paste("niet behaald in maand:", round(.data$lastage_0,0)), NA) ) %>%
+      select(.data$item, .data$value, .data$firstage_1, .data$passtxt, .data$lastage_0, .data$failtxt)
+
   }
 
 
@@ -58,6 +71,10 @@ plot_vwc <- function(
   xtick <- c(major, minor) |> sort()
   xtick_text <- ifelse(xtick %in% major, xtick, "")
   statuscols <- c("candidate" = "#000000", "passed" = "#999999", "failed" = "#b03060", "continuous" = "#3399ff", "selected"= "#e6550d")
+
+
+  plot_title <- domein
+  if(domein == "Fijne motoriek") plot_title <- "Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag"
 
 ##basic plot for gm:
 plot_data <-
@@ -78,9 +95,9 @@ data |>
 status <- plot_data |>
   mutate(
     status = "candidate",
-    status = ifelse((!is.na(.data$value) & .data$value == 1), "passed", status),
+    status = ifelse((!is.na(.data$value) & .data$value == "pos"), "passed", status),
     #previously fail as maroon
-    status = ifelse((!is.na(.data$value) & .data$value == 0), "failed", status),
+    status = ifelse((!is.na(.data$value) & .data$value == "neg"), "failed", status),
     #continuous items blue.
     status = ifelse((!is.null(agemos) && agemos < 15) & .data$item %in% c("ddigmd052", "ddigmd053", "ddigmd054"), "continuous", status ),
     status = ifelse((!is.null(agemos) && agemos < 3) & .data$item %in% c("ddigmd055"), "continuous", status ),
@@ -141,11 +158,27 @@ plot_data |>
     showlegend = FALSE
   ) |>
   add_markers(
-    x = ~admin,
+    x = ~firstage_1,
     y = ~labelNLn,
     color = status,
     colors = statuscols,
-    text = ~c(admintxt),
+    text = ~c(passtxt),
+    marker = list(symbol = "cross-thin-open",
+                  size = 3,
+                  line = list(
+                    color = status,
+                    colors = statuscols,
+                    width = 2
+                  )
+    ),
+    showlegend = FALSE
+  ) |>
+  add_markers(
+    x = ~lastage_0,
+    y = ~labelNLn,
+    color = status,
+    colors = statuscols,
+    text = ~c(failtxt),
     marker = list(symbol = "x-thin-open",
                   size = 3,
                   line = list(
@@ -157,6 +190,7 @@ plot_data |>
     showlegend = FALSE
   ) |>
   layout(
+    title = list(text = plot_title, xanchor = "right"),
     xaxis = list(
       title = "",
       tickvals = xtick,
@@ -179,7 +213,8 @@ plot_data |>
     yaxis = list(
       title = ""),
     margin = list(
-      l = 0
+      l = 0,
+      t = 80
     ),
 
     shapes = list(
@@ -193,14 +228,3 @@ plot_data |>
     )
   )
 }
-
-
-#vline <- function(x){
-#  list(type = "line",
-#       y0 = 0,
-#       y1 = 1,
-#       yref = "paper",
-#       x0 = x,
-#       x1 = x,
-#       line = list(color = "black"))
-#}
