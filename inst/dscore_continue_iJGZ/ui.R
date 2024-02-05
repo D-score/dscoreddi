@@ -18,10 +18,10 @@ shinyUI(
             br(),
             h3("Instellingen"),
             br(),
-
-            numericInput("agemos", "Leeftijd kind in maanden", min = 0, max = 50, value = character(0)),
-            bsTooltip("agemos", "Op basis van deze leeftijd worden kenmerken aanbevolen. Bij vroeggeboorte kun je leeftijd corrigeren.", placement = "top", trigger = "hover", options = list(container = "body")),
-            br(),
+            # age input can be removed, is red from the bds data
+           # numericInput("agemos", "Leeftijd kind in maanden", min = 0, max = 50, value = character(0)),
+          #  bsTooltip("agemos", "Op basis van deze leeftijd worden kenmerken aanbevolen. Bij vroeggeboorte kun je leeftijd corrigeren.", placement = "top", trigger = "hover", options = list(container = "body")),
+           # br(),
 
             sliderInput("refperc",
                         "Percentiel voor kenmerken",
@@ -34,8 +34,8 @@ shinyUI(
             br(),
 
             hr(),
-            p("Bron referenties:"),
-            em("Van Buuren S (2014). Growth charts of human development. Stat Methods Med Res, 23(4), 346-368."),
+            div(p("Bron referenties:"),
+            em("Van Buuren S (2014). Growth charts of human development. Stat Methods Med Res, 23(4), 346-368."), style = "font-size:8px"),
             hr(),
             div(HTML("&copy; Copyright, TNO 2024"),
                  style = "
@@ -51,24 +51,19 @@ shinyUI(
                 ")
 
 
-          #  p("Hier kunnen we ook kenmerken die in eerdere contacten al zijn uitgevraagd ophalen. Deze kunnen we dan (1) uitsluiten als nieuwe suggesties en (2) gebruiken om de D-scores te bepalen van vorige contactmenten en te plotten in het D-score plot.")
-        ),
+          ),
 
         # Show a plot of the generated distribution
         mainPanel(width = 10,
             tabsetPanel(
-
                 tabPanel("VWO Fijne motoriek",
-                         h4("Fijne motoriek"),
-                         plotlyOutput("VWOfinemotor", height = 800),
+                             plotlyOutput("VWOfinemotor", height = 800),
                        tags$div(
                            tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
                            tags$span("Kenmerken die passen bij de instellingen zijn oranje gekleurd.", style= "color:#e6550d"),tags$br(), tags$span("Voor elk kenmerk geeft de balk de P10 (links), P50 (middenstip), P90 (rechts). De verticale hulplijn staat bij de leeftijd van het kind."),tags$span("Voor reeds behaalde kenmerken zijn de lijnen grijs gekleurd en voor kenmerken eerder afgenomen maar (nog) niet behaald zijn de lijnen lichtrood.")
                          )
                 ),
                 tabPanel("VWO Communicatie",
-                         h4("Communicatie"),
-
                          plotlyOutput("VWOcommunication", height = 800),
                          tags$div(
                            tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
@@ -76,8 +71,6 @@ shinyUI(
                          )
                 ),
                 tabPanel("VWO Grove motoriek",
-                         h4("Grove motoriek"),
-
                          plotlyOutput("VWOgrovemotor", height = 800),
                          tags$div(
                           tags$span("(M) = mededeling; -rl = rechts en links samen."), tags$br(),
