@@ -9,7 +9,7 @@ shinyUI(
     fluidPage(
 
     # Application title
-    titlePanel("Van Wiechen Continue - Tool"),
+    titlePanel("Van Wiechen Continu - Tool"),
 
     # Sidebar with a slider input for number of bins
     sidebarLayout(
