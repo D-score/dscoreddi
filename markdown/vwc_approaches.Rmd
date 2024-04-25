@@ -1,0 +1,342 @@
+---
+title: "VWC percentielen"
+author: "Iris Eekhout"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+library(gseddata)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+NLD <- data.frame(gseddata::get_data(cohorts = c(53,54)))
+
+theme_set(theme_light())
+```
+
+## Approaches
+
+There are three possible approaches:
+
+(1) Fully empirically by just computing the percentage for each age in the data then approximate the percentile ages from that table.
+(2) Use a logistic regression to estimate the association between age and probability to pass for each item. Use the logistic function to estimate the ages at the percentiles
+(3) Use a GAMLSS model to estimate the association between age and probability to pass.
+(4) Use the D-score model and references
+
+
+### Empirical percentages
+
+```{r}
+
+
+empirical <-
+NLD %>%
+  mutate(ageweeks = (agedays + 1) / 7,
+         agemos = agedays/ 365.25 *12) %>%
+  mutate(week = ceiling(ageweeks),
+         month = ceiling(agemos)) %>%
+  pivot_longer(cols = starts_with("ddi"), names_to = "item", values_to = "score") %>%
+  group_by(item, week) %>%
+  summarise(n = sum(!is.na(score)),
+            p = sum(score, na.rm = T)/n,
+            .groups = "drop") %>%
+  left_join(dscoreddi::itemtableVWO %>% select(ID.VWO2005, labelNL, item), by = "item") %>%
+  select(item, ID.VWO2005, labelNL, week, n, p)
+
+percentile_age <- 
+empirical %>%
+  group_by(item) %>%
+  summarise(
+    A10 = approx(p, week, xout = 0.10)$y / 52 * 12,
+    A50 = approx(p, week, xout = 0.50)$y / 52 * 12,
+    A90 = approx(p, week, xout = 0.90)$y / 52 * 12)
+
+
+pref_emp <- dscoreddi::prefdat %>%
+  select(-c(A10, A50, A90)) %>%
+  left_join(percentile_age, by = "item")
+
+
+
+emp <- empirical %>% filter(n > 10) %>% mutate(agedays = round(week * 7),0) %>% select(item, agedays, p)
+
+```
+
+
+### Logistic regression
+
+
+```{r}
+items <- colnames(NLD)[grepl("^ddi", colnames(NLD))]
+df <- data.frame(agedays = 1:1461)
+logistic_age <- data.frame()
+for(i in items){
+  
+  form <- as.formula(paste(i, "~ agedays"))
+  fit <- glm(form, data = NLD, family = "binomial")
+  df$prob <- predict.glm(fit, df, type = "response")
+  
+  out <- 
+  data.frame(item = i, 
+             A10 = approx(df$prob, df$agedays, xout = 0.1)$y /365.25 *12,
+             A50 = approx(df$prob, df$agedays, xout = 0.5)$y /365.25 *12,
+             A90 = approx(df$prob, df$agedays, xout = 0.9)$y /365.25 *12
+  ) 
+  logistic_age <- bind_rows(logistic_age, out)
+}
+
+pref_log <- dscoreddi::prefdat %>%
+  select(-c(A10, A50, A90)) %>%
+  left_join(logistic_age, by = "item")
+
+```
+
+### D-score model
+
+
+```{r}
+      
+   scalefactor <- 2.09
+   p <- c(1:100)
+   reference <- dscoreddi::expanded_reference
+   
+   ib <- dscoreddi::itembank_vwc
+   pd <- matrix(ib$tau, nrow = nrow(ib), ncol = length(p)) + 
+        matrix(scalefactor * qlogis(p/100), nrow = nrow(ib), 
+            ncol = length(p), byrow = TRUE)
+   pa <- approx(x = reference$mu, y = reference$age, xout = as.vector(pd))$y*365.25 
+   pa <- matrix(pa, ncol = length(p))
+   pa <- data.frame(ib[, "item"], round(pa,0))
+   names(pa) <- c("item", paste0("A", p))
+   
+   dipa <- pa %>% pivot_longer(-1, names_to = "p", values_to = "agedays") %>% mutate(p = as.numeric(gsub("A","", p))/100)
+   
+   
+   
+   #ggplot(ipa, aes(agedays, p))+
+   #   geom_line()+
+   #   facet_wrap(~item)
+    
+    
+```
+
+
+
+### GAMLSS model
+
+```{r eval=FALSE, include=TRUE}
+library(gamlss)
+library(dscoreddi)
+
+dfout <- data.frame()
+
+
+items <- colnames(NLD)[grepl("^ddi", colnames(NLD))]
+keep <- sapply(NLD[, items], function(x) min(table(x)) >= 10)
+items <- items[keep]
+
+df <- data.frame(agedays = 7:1461)
+for(i in items){
+# i <- "ddicmm033" 
+    df2 <- df %>% mutate(item = i)
+     
+    x <- NLD %>% select(agedays, !!i) %>% na.omit
+    
+    form <- as.formula(paste(i, "~ agedays"))
+    fit <- glm(form, data = x, family = "binomial")
+    df2$logistic <- predict.glm(fit, newdata = df, type = "response")
+     
+    formd <- as.formula(paste(i, "~ ps(agedays)"))
+		gam.default <- gamlss(formd, data=x, family = BI, na.action = na.omit)
+    df2$gam_dfd <- predict(gam.default, "mu", newdata = df, type = "response")
+		
+    form2 <- as.formula(paste(i, "~ ps(agedays, df = 2)"))
+		gam.df2     <- gamlss(form2, data=x, family = BI)
+		df2$gam_df2 <- predict(gam.df2, "mu", newdata = df, type = "response")
+		
+	  form2.5 <- as.formula(paste(i, "~ ps(agedays, df = 2.5)"))
+    gam.df2.5   <- gamlss(form2.5, data=x, family = BI, na.action = na.omit)
+	  df2$gam_df2.5 <- predict(gam.df2.5, "mu", newdata = df, type = "response")
+		
+	  form3 <- as.formula(paste(i, "~ ps(agedays, df = 3)"))
+	  gam.df3     <- gamlss(form3, data=x, family = BI, na.action = na.omit)
+	  df2$gam_df3 <- predict(gam.df3, "mu", newdata = df, type = "response")
+		
+	 
+    df3 <- df2 %>%
+      pivot_longer(-c(agedays, item), names_to = "model", values_to = "p")
+    
+    ggplot(data = df3)+
+      geom_line(aes(x = agedays, y = p, color = model, group = model), size = 2, alpha = 0.5 )+
+      ylim(c(0,1))+
+      geom_abline(aes(intercept = 0.1, slope = 0))+
+      geom_abline(aes(intercept = 0.5, slope = 0))+
+      geom_abline(aes(intercept = 0.9, slope = 0)) +
+      facet_grid(model~.)
+    
+    dfout <- bind_rows(dfout, df3)
+      
+    
+}
+ 
+
+     
+    dsc <- dipa %>% mutate(model = "p_dscore")
+    empp <- emp %>% mutate(model = "empirical")
+                    
+   # dfout <- dfout %>% bind_rows(dsc) #%>%
+      #bind_rows(empp)
+           
+ ggplot(data = dfout)+
+      geom_line(aes(x = agedays, y = p, color = model, group = model), size = 1.2, alpha = 0.5 )+
+      ylim(c(0,1))+
+      geom_abline(aes(intercept = 0.1, slope = 0))+
+      geom_abline(aes(intercept = 0.5, slope = 0))+
+      geom_abline(aes(intercept = 0.9, slope = 0)) +
+      facet_wrap(~item)
+    
+
+
+empest <- percentile_age %>% pivot_longer(A10:A90, names_to = "perc", values_to = "agemos") %>%
+  mutate(p = as.numeric(gsub("A", "", perc))/ 100,
+         agedays = round(agemos / 12 * 365.25,0))
+
+plots <- list()
+
+for(i in items){
+  lab <- dscoreddi::itemtableVWO %>% filter(item == i) %>% pull(labelNL)
+  
+  p <- 
+   ggplot(data = dfout %>% filter(item == i))+
+      geom_line(aes(x = agedays, y = p, color = model, group = model), size = 1.2, alpha = 0.5 )+
+      geom_point(data = empp %>% filter(item == i), aes(x = agedays, y = p), color= "darkgrey" )+
+      ylim(c(0,1))+
+      geom_point(data = empest %>% filter(item == i), aes(x = agedays, y = p), size = 2)+
+      geom_abline(aes(intercept = 0.1, slope = 0))+
+      geom_abline(aes(intercept = 0.5, slope = 0))+
+      geom_abline(aes(intercept = 0.9, slope = 0)) +
+    ggtitle(paste("item:", i, "-", lab))
+ plots[[i]] <- p 
+}
+
+#Export
+pdf('results/vwc_approaches_pt_geend.pdf',height = 6, width = 8)
+plots
+dev.off()
+    
+```
+
+
+
+```{r}
+pref <- bind_rows(
+  pref_emp %>% mutate(computation = "empirical"), 
+  pref_log %>% mutate(computation = "logistic"), 
+  dscoreddi::prefdat %>% mutate(computation = "dscore")
+)
+
+
+  
+```
+
+
+```{r, fig.height=11, fig.width=10}
+
+ ggplot(data = pref %>%
+                     filter(sideA == 1), #selecteer milestons met A10 < 15 maanden
+        aes(x = reorder(labelNLn, -nr),  y= A50, color = computation, group = computation)
+                   ) + #changed
+            geom_point()+
+            geom_errorbar(aes(ymin = A10, ymax = A90), size = 1, width = 0.2, alpha = 0.6)+
+            
+            coord_flip()+ xlab("") +
+            theme(legend.position = "top") +
+  
+          scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,18),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))
+  
+  
+```
+
+
+```{r, fig.height=11, fig.width=10}
+
+  
+
+ ggplot(pref %>%
+                     filter(sideB == 1),  #selecteer milestons met A10 < 15 maanden
+                   aes(x = reorder(labelNLn, -nr),  y= A50, color = computation, group = computation)) + #changed
+            geom_point()+
+            geom_errorbar(aes(ymin = A10, ymax = A90), size = 1, width = 0.2, alpha =0.5)+
+            
+            coord_flip()+ xlab("") +
+            theme(legend.position = "top") +
+
+          scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(8,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))
+  
+  
+```
+
+
+Het lijkt erop dat de empirische data zorgt voor erg brede intervallen voor sommige items. 
+
+Ook vergelijken met Denver data?
+
+
+
+## Per domein
+
+Fijne motoriek
+
+```{r, fig.height=11, fig.width=10}
+   ggplot(pref %>% filter(domein == "Fijne motoriek"), #selecteer milestons met A10 < 15 maanden
+               aes(x = reorder(labelNLn, -nr),  y= A50, group = computation, color = computation, label = labelNL)) +
+        geom_point()+
+        geom_errorbar(aes(ymin = A10, ymax = A90), size = 1, width = 0.2, alpha =0.5)+
+        coord_flip()+
+     theme_light() +
+     theme(legend.position = "top") +
+        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
+        xlab("")+
+        ggtitle("Fijne motoriek/Adaptie/Persoonlijkheid en Sociaal gedrag")
+
+```
+
+
+Grove motoriek
+
+```{r, fig.height=11, fig.width=10}
+   ggplot(pref %>% filter(domein == "Grove motoriek"), #selecteer milestons met A10 < 15 maanden
+               aes(x = reorder(labelNLn, -nr),  y= A50, group = computation, color = computation, label = labelNL)) +
+        geom_point()+
+        geom_errorbar(aes(ymin = A10, ymax = A90), size = 1, width = 0.2, alpha =0.5)+
+        coord_flip()+
+        theme(legend.position = "top") +
+        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
+        xlab("")+
+        ggtitle("Grove motoriek")
+
+```
+
+
+Communicatie
+
+```{r, fig.height=11, fig.width=10}
+   ggplot(pref %>% filter(domein == "Communicatie"), #selecteer milestons met A10 < 15 maanden
+               aes(x = reorder(labelNLn, -nr),  y= A50, group = computation, color = computation, label = labelNL)) +
+        geom_point()+
+        geom_errorbar(aes(ymin = A10, ymax = A90), size = 1, width = 0.2, alpha =0.5)+
+        coord_flip()+
+        theme(legend.position = "top") +
+        scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,50),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))+
+        xlab("")+
+        ggtitle("Communicatie")
+
+```
+
