@@ -1,0 +1,10 @@
+2 do:
+
+* Add vw_history data to plot_vwc
+* Check color scheme - colors to rgb() -- lookup in plotly documentation
+* Add historical data as efficiently as possible -- age of passed?
+* add per item column age with either age of last pass or age at fail.
+* also column with item response?
+* check all functions created
+* update shiny app with the plots
+* make sure to be able to update the necessary things.
