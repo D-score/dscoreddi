@@ -3,8 +3,13 @@
 #plot reference data for the van wiechen continue plot
 library(dscoreddi)
 
+dmetric::gsed_model_818_6$transform
+scale <- dmetric::smoccmodel$model$transform[2]
 
-refdata <- dmetric::calculate_age_equivalents(itembank = itembank_vwc, scalefactor = 2.099986, p = c(10, 50, 90), reference = expanded_reference)
+refdata <- dmetric::calculate_age_equivalents(itembank = itembank_vwc %>% filter(key == "dutch"),
+                                              scalefactor = scale,
+                                              p = c(10, 50, 90),
+                                              reference = dscoreddi::expanded_reference %>% filter(population == "dutch" & key == "dutch")) #%>% mutate(A90 = ifelse(D90 > 80 & is.na(A90), 80, A90))
 
 #load("data/itemtableVWO.rda")
 
@@ -37,5 +42,11 @@ prefdat <- refdata %>%
 
   ) %>%
   arrange(nr)
+
+## checkdata
+
+vwc::plot_vwc(data = prefdat, domein = "Fijne motoriek")
+vwc::plot_vwc(data = prefdat, domein = "Grove motoriek")
+vwc::plot_vwc(data = prefdat, domein = "Communicatie")
 
 usethis::use_data(prefdat, overwrite = TRUE)
