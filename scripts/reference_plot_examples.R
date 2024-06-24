@@ -4,7 +4,7 @@ library(dplyr)
 library(tidyr)
 #ophalen uit JAMES? of gewoon dscore package
 references <- dscore::builtin_references %>%
-  filter(pop == "dutch") %>%
+  filter(population == "dutch" & key == "dutch") %>%
   mutate(month = age * 12) %>%
   select(month, SDM2:SDP2) %>%
   filter(month <= 60) %>%
@@ -65,7 +65,7 @@ library(dplyr)
 library(tidyr)
 
 references <- dscore::builtin_references %>%
-  filter(pop == "dutch") %>%
+  filter(population == "dutch" & key == "dutch") %>%
   mutate(month = age * 12) %>%
   select(month, SDM2:SDP2) %>%
   filter(month <= 60) %>%

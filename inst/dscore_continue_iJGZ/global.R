@@ -89,4 +89,10 @@ d_history <- get_dhistory(tgt$xyz)
 agedays <- as.numeric(Sys.Date() - as.Date(tgt$psn$dob))
 agemos_in <- round(agedays / 365.25 * 12)
 
+references <- dscore::builtin_references %>%
+  filter(population == "dutch" & key == "dutch") %>%
+  mutate(month = age * 12) %>%
+  select(month, SDM2:SDP2) %>%
+  filter(month <= 60) %>%
+  pivot_longer(names_to = "centile", values_to = "d", cols = -month)
 

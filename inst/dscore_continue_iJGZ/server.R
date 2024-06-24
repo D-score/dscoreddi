@@ -21,7 +21,7 @@ shinyServer(function(input, output, session) {
 #deze kan updaten tijdens het plotten door input parameters refperc en suggest
 selected_items <-
   reactive({
-    select_vwc(
+    vwc::select_vwc(
       age = agemos_in/12,
       refperc = input$refperc,
       nsuggest = input$suggest,
@@ -31,7 +31,7 @@ selected_items <-
   })
 
    output$VWOfinemotor <- renderPlotly({
-      plot_vwc(
+      vwc::plot_vwc(
         data = dscoreddi::prefdat,
         domein = "Fijne motoriek",
         age = agemos_in/12,
@@ -42,7 +42,7 @@ selected_items <-
 
 
    output$VWOcommunication <- renderPlotly({
-     plot_vwc(
+     vwc::plot_vwc(
        data = dscoreddi::prefdat,
        domein = "Communicatie",
        age = agemos_in/12,
@@ -54,7 +54,7 @@ selected_items <-
     })
 
    output$VWOgrovemotor <- renderPlotly({
-     plot_vwc(
+     vwc::plot_vwc(
        data = dscoreddi::prefdat,
        domein = "Grove motoriek",
        age = agemos_in/12,

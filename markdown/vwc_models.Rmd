@@ -1,0 +1,172 @@
+---
+title: "vwc_models"
+author: "Iris Eekhout"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dscoreddi)
+library(openxlsx)
+library(dplyr)
+library(ggplot2)
+theme_set(theme_light())
+```
+
+## Models
+
+Er zijn nu twee modellen die we zouden kunnen gebruiken voor het maken van de Van Wiechen Continue plots. 
+
+(1) Nederlandse model (Jacobusse / Van Buuren 2014)
+(2) GSED model, phase 1 validatie (Van Buuren 2022)
+
+Het Nederlandse model is gebaseerd op alleen Nederlandse data van Smock en Doove. Het GSED model is gebaseerd op internationale data, waaronder ook de Nederlandse data. 
+
+
+## Percentielen
+
+
+Eerst bepalen we de leeftijden voor elk percentiel op basis van de itembank, scalefactor en de referentie.
+De percentiel referenties gebruiken we dan om de data voor te bereiden die we gebruiken om de VWC plots te maken. 
+
+
+```{r}
+dmetric::gsed_model_818_6$transform[2]
+refdataGSED <- dmetric::calculate_age_equivalents(itembank = itembank_vwc |> filter(key == "gsed2406"),
+                                              scalefactor = 4.064264,
+                                              p = c(10, 50, 90),
+                                              reference = expanded_reference |> filter(population == "dutch" & key == "gsed2406")) |> mutate(A90 = ifelse(D90 > 80 & is.na(A90), 80, A90),
+                                                                                                                             key = "gsed2406") 
+
+dscoreddi::smoccmodel$model$transform[2]
+refdataNL <- dmetric::calculate_age_equivalents(itembank = itembank_vwc |> filter(key == "dutch"),
+                                              scalefactor = 2.099986,
+                                              p = c(10, 50, 90),
+                                              reference = expanded_reference |> filter(population == "dutch" & key == "dutch")) |>
+  mutate(key = "dutch") 
+#load("data/itemtableVWO.rda")
+
+refdat <- bind_rows(refdataGSED, refdataNL) |>
+  mutate(
+    domain = substr(item, 4,5),
+    domein = dplyr::recode(domain, "cm" = "Communicatie",
+                           "fm" = "Fijne motoriek",
+                           "gm" = "Grove motoriek")) |>
+  #rename(leeftijd = A) |>
+  left_join(itemtableVWO |> select(item, labelNL, ID.VWO2005, month), by = "item") |>
+  mutate(nr = as.numeric(substr(item, 7, 9)),
+         # nr = ifelse(nr == 136, 35, nr), #dubbel met nr 035? -- 035 zit neit in model; 136 wel - wijzig op voorhand
+         # nr = ifelse(nr == 148, 40, nr), #dubbel met nr 040? -- 040 zit niet in model; 148 wel - wijzig op voorhand
+         nr = ifelse(nr == 068, 68.1, nr),
+         nr = ifelse(nr == 168, 68.2, nr),
+         nr = ifelse(nr == 268, 68.3, nr),
+         domein = ifelse(nr == 6, "Fijne motoriek", domein),
+
+         labelNLnr = paste(nr, labelNL, sep = ". "),
+         #labelNLn = ifelse(nr %in% 52:55, paste(nr, labelNL, sep = ".* "), labelNLn),
+         labelNLn = ifelse(month < 10, paste(labelNLnr, month, sep = " |  "),
+                           paste(labelNLnr, month, sep = " |") ),
+         labelNLn = ifelse(nr %in% 52:55, paste(labelNLnr, "**", sep = " | "), labelNLn),
+         labelNLn = forcats::fct_reorder(labelNLn, -nr),
+         sideA = ifelse(nr %in% c(1:12, 29:38, 52:67), 1, 0),
+         sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2, 68.3), 1, 0),
+         A10 = ifelse(is.na(A10), 0, A10),
+         A50 = ifelse(is.na(A50), 0, A50),
+         A90 = ifelse(is.na(A90), 0, A90)
+
+  ) |>
+  arrange(nr)
+
+
+
+```
+
+
+```{r, fig.width=16, fig.height=20}
+
+ggplot(data = refdat , aes(y = labelNLn, x = A50, color = key))+
+  geom_point(size = 1)+
+  geom_errorbar(aes(xmin = A10, xmax = A90, color = key), size = 1) +
+  xlab("Leeftijd (maanden)")+
+  ylab("")+
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+```
+
+
+## Geobserveerde data
+
+
+```{r, fig.width=16, fig.height=20}
+
+
+## add DH data as reference
+
+
+vwtab <- read.xlsx("~/OneDrive - TNO/Documents/GitHub/dscoreddi/data-raw/data/vanwiechen_percentage_cm.xlsx")
+
+colnames(vwtab) <- c("nr", "NLlabel", "leeftijdwkn", "wk1", "wk2", "n/N", "%", "SMOCK", "SW", "Perc_D")
+
+vwtabDH <-
+  vwtab |>
+  mutate(mnd1 = wk1 * 7 / 30,
+         mnd1 = ifelse(is.na(mnd1), as.numeric(leeftijdwkn), mnd1),
+         mnd2 = wk2 * 7 / 30,
+         mnd2 = ifelse(is.na(mnd2), as.numeric(leeftijdwkn), mnd2),
+         mnd1 = round(mnd1,1),
+         mnd2 = round(mnd2,1),
+         DH = `%`,
+         DHr = round(`%`,0),
+         nr = ifelse(nr == 68.0, 68.2, nr)) |>
+  rowwise() |>
+  mutate(
+         mndm = mean(mnd1,mnd2, na.rm = T)
+
+  ) |>
+  full_join(refdat, by = "nr")
+
+
+ggplot(data = vwtabDH , aes(y = labelNLn, x = A50, color = key))+
+  geom_point( size = 1)+
+  geom_errorbar(aes(y = labelNLn, xmin = A10, xmax = A90, color = key), size = 1) +
+  geom_point(aes(y = labelNLn,  x= mndm), color = "#0072B2", alpha = 0.25, pch = 3)+
+  geom_errorbar(aes(y = labelNLn, xmin = mnd1, xmax = mnd2), color = "#0072B2", width = 0.5, size = 1)+
+  geom_text(aes(y = labelNLn,  x= mndm, label = DHr), nudge_y = 0.5, size = 3,color = 1, check_overlap = T)+
+  xlab("Leeftijd (maanden)")+
+  ylab("")+  
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  ggtitle("Den Haag percentages")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+
+
+ggplot()+
+  geom_point(data = refdat , aes(y = labelNLn, x = A50, color = key), size = 1)+
+  geom_errorbar(data= refdat, aes(y = labelNLn, xmin = A10, xmax = A90, color = key), size = 1) +
+   geom_point(data=vwtabDH, aes(y = labelNLn,  x= mndm), color = "#009E73", alpha = 0.25, pch = 3)+
+  geom_errorbar(data=vwtabDH, aes(y = labelNLn,xmin = mnd1, xmax = mnd2), color = "#009E73", width = 0.5, size = 1)+
+  geom_text(data=vwtabDH, aes(y = labelNLn,  x= mndm, label = SW), nudge_y = 0.5, size = 3, color = 1, check_overlap = T)+
+  xlab("Leeftijd (maanden)")+
+  ylab("")+  
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  ggtitle("Scheslinger-Wash percentages")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+ggplot()+
+  geom_point(data = refdat , aes(y = labelNLn, x = A50, color = key), size = 1)+
+  geom_errorbar(data= refdat, aes(y = labelNLn, xmin = A10, xmax = A90, color = key), size = 1) +
+   geom_point(data=vwtabDH, aes(y = labelNLn,  x= mndm), color = "#CC79A7", alpha = 0.25, pch = 3)+
+  geom_errorbar(data=vwtabDH, aes(y = labelNLn,xmin = mnd1, xmax = mnd2), color = "#CC79A7", width = 0.5, size = 1)+
+  geom_text(data=vwtabDH, aes(y = labelNLn,  x= mndm, label = SMOCK), nudge_y = 0.5, size = 3, color = 1,check_overlap = T)+
+  xlab("Leeftijd (maanden)")+
+  ylab("")+  
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  ggtitle("SMOCK percentages")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+
+
+
+```

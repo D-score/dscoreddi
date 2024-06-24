@@ -15,7 +15,7 @@ load("~/OneDrive - TNO/Documents/GitHub/dscoreddi/data/smoccmodel.rda")
 model <- smoccmodel$model
 
 #scalefactor <- smoccmodel$model$transform[2]
-itembank <- dscore::builtin_itembank %>% filter(key == "gsed2212")
+itembank <- dscore::builtin_itembank %>% filter(key == "gsed2406")
 
 #expand reference with a count model (based on dmetric/expand_referenced.Rmd)
 #44.35 - 1.8 * t + 28.47 * log(t + 0.25)
@@ -24,7 +24,7 @@ expanded_reference <- dscore::get_reference(population = "phase1")
 
 ggplot(expanded_reference, aes(x = age, y = mu))+
   geom_line()+
-  geom_line(aes(x = age, y = mu1, color = "red"))
+  geom_line(aes(x = age, y = mu, color = "red"))
 
 refdata <- dmetric::calculate_age_equivalents(itembank = itembank, p = c(10, 50, 70, 90),scalefactor = 4.064264,  reference = expanded_reference) %>% left_join(itembank)
 
@@ -80,20 +80,20 @@ sf1 <-
 
 library(dinstrument)
 data <-dinstrument::sim(n = 1,
-                        reference = expanded_reference,
+                        reference = expanded_reference %>% filter(key == "gsed2406"),
                         age_range = c(2,2),
                         itembank = itembank %>% filter(instrument == "gs1"),
                         pop = "P50")
 
 
 
-dcat_algorithm2(itembank = itembank %>% filter(instrument == "gs1"), data = data, scalefactor = 4.064264, reference = expanded_reference, max_length = 30)
+dcat_algorithm2(itembank = itembank %>% filter(instrument == "gs1"), data = data, scalefactor = 4.064264, reference = expanded_reference%>% filter(key == "gsed2406"), max_length = 30)
 
-dcat_start(itembank = itembank %>% filter(instrument == "gs1"), p =50, reference = expanded_reference, age = 2, scalefactor = 4.064264)
+dcat_start(itembank = itembank %>% filter(instrument == "gs1"), p =50, reference = expanded_reference%>% filter(key == "gsed2406"), age = 2, scalefactor = 4.064264)
 
 
 references <- dscore::builtin_references %>%
-  filter(pop == "phase1") %>%
+  filter(population == "phase1") %>%
   mutate(month = age * 12) %>%
   select(month, SDM2:SDP2) %>%
   filter(month <= 60) %>%
@@ -113,7 +113,7 @@ itembank %>% filter(instrument == "gs1" & tau > 62 & tau < 66)
 
 
 
-refdata2 <- dmetric::calculate_age_equivalents(itembank = itembank%>% filter(instrument == "gs1"), scalefactor = 4.064264,  p = seq(1,99, 1), reference = expanded_reference)
+refdata2 <- dmetric::calculate_age_equivalents(itembank = itembank%>% filter(instrument == "gs1"), scalefactor = 4.064264,  p = seq(1,99, 1), reference = expanded_reference%>% filter(key == "gsed2406"))
 
 
 pref2 <- refdata2 %>%

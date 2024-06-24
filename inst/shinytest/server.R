@@ -19,7 +19,7 @@ function(input, output, session) {
 
    #ophalen uit JAMES? of gewoon dscore package
        references <- dscore::builtin_references %>%
-         filter(pop == "dutch") %>%
+         filter(key == "dutch") %>%
          mutate(month = age * 12) %>%
          select(month, SDM2:SDP2) %>%
          filter(month <= 60) %>%

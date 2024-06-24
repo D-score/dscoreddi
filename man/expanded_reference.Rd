@@ -5,7 +5,7 @@
 \alias{expanded_reference}
 \title{This is data to be included in my package}
 \format{
-An object of class \code{data.frame} with 191 rows and 4 columns.
+An object of class \code{data.frame} with 514 rows and 4 columns.
 }
 \usage{
 expanded_reference

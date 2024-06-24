@@ -55,7 +55,7 @@ function (model = NULL, itembank = NULL, scalefactor = NULL,
 
 refdata <- dmetric::calculate_age_equivalents(itembank = itembank_vwc, scalefactor = 2.099986, p = c(10, 50, 90), reference = expanded_reference)
 
-reference1 <- dscore::builtin_references %>% filter(pop == "dutch_gsed2212") %>% 
+reference1 <- dscore::builtin_references %>% filter(population == "dutch" & key == "gsed2406") %>% 
   pivot_longer(P3:P97, names_to = "percentile", values_to = "d")
 
 ggplot(reference1, aes(age * 12, d, group = percentile))+

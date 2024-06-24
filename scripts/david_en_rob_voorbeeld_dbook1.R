@@ -1,3 +1,6 @@
+library(dplyr)
+library(tidyr)
+
 df1 <- data.frame(id = c("David", "Rob"),
                   age = c(15/12, 15/12),
                   ddifmd011 = c(1,1),
@@ -18,7 +21,7 @@ dscore:::count_mu_dutch(12/15)
 dscore:::count_mu_dutch
 
 
-library(ggplot)
+library(ggplot2)
 
 ## plot to prepare for prior
 
@@ -27,7 +30,7 @@ library(ggplot)
 
 
 #scalefactor <- smoccmodel$model$transform[2]
-itembank <- dscore::builtin_itembank %>% filter(key == "gsed2212")
+itembank <- dscore::builtin_itembank %>% filter(key == "gsed2406")
 
 #expand reference with a count model (based on dmetric/expand_referenced.Rmd)
 #44.35 - 1.8 * t + 28.47 * log(t + 0.25)

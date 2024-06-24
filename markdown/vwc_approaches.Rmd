@@ -98,16 +98,16 @@ pref_log <- dscoreddi::prefdat %>%
 
 ```
 
-### D-score model
+### D-score model - dutch key
 
 
 ```{r}
       
    scalefactor <- 2.09
    p <- c(1:100)
-   reference <- dscoreddi::expanded_reference
+   reference <- dscoreddi::expanded_reference |> dplyr::filter(population == "dutch" & key == "dutch")
    
-   ib <- dscoreddi::itembank_vwc
+   ib <- dscoreddi::itembank_vwc |> dplyr::filter(key == "dutch")
    pd <- matrix(ib$tau, nrow = nrow(ib), ncol = length(p)) + 
         matrix(scalefactor * qlogis(p/100), nrow = nrow(ib), 
             ncol = length(p), byrow = TRUE)
@@ -116,11 +116,40 @@ pref_log <- dscoreddi::prefdat %>%
    pa <- data.frame(ib[, "item"], round(pa,0))
    names(pa) <- c("item", paste0("A", p))
    
-   dipa <- pa %>% pivot_longer(-1, names_to = "p", values_to = "agedays") %>% mutate(p = as.numeric(gsub("A","", p))/100)
+   dipa_du <- pa %>% pivot_longer(-1, names_to = "p", values_to = "agedays") %>% mutate(p = as.numeric(gsub("A","", p))/100)
    
    
    
-   #ggplot(ipa, aes(agedays, p))+
+   #ggplot(dipa_du, aes(agedays, p))+
+   #   geom_line()+
+   #   facet_wrap(~item)
+    
+    
+```
+
+### D-score model - gsed key
+
+
+```{r}
+      
+   scalefactor <- 2.09
+   p <- c(1:100)
+   reference <- dscoreddi::expanded_reference |> dplyr::filter(population == "dutch" & key == "gsed2406")
+   
+   ib <- dscoreddi::itembank_vwc |> dplyr::filter(key == "gsed2406")
+   pd <- matrix(ib$tau, nrow = nrow(ib), ncol = length(p)) + 
+        matrix(scalefactor * qlogis(p/100), nrow = nrow(ib), 
+            ncol = length(p), byrow = TRUE)
+   pa <- approx(x = reference$mu, y = reference$age, xout = as.vector(pd))$y*365.25 
+   pa <- matrix(pa, ncol = length(p))
+   pa <- data.frame(ib[, "item"], round(pa,0))
+   names(pa) <- c("item", paste0("A", p))
+   
+   dipa_gs <- pa %>% pivot_longer(-1, names_to = "p", values_to = "agedays") %>% mutate(p = as.numeric(gsub("A","", p))/100)
+   
+   
+   
+   #ggplot(dipa_gs, aes(agedays, p))+
    #   geom_line()+
    #   facet_wrap(~item)
     
@@ -130,12 +159,17 @@ pref_log <- dscoreddi::prefdat %>%
 
 
 ### GAMLSS model
+```{r}
+dfout <- data.frame()
+    empp <- emp %>% mutate(model = "empirical")
+
+```
+
 
 ```{r eval=FALSE, include=TRUE}
 library(gamlss)
 library(dscoreddi)
 
-dfout <- data.frame()
 
 
 items <- colnames(NLD)[grepl("^ddi", colnames(NLD))]
@@ -187,13 +221,6 @@ for(i in items){
 }
  
 
-     
-    dsc <- dipa %>% mutate(model = "p_dscore")
-    empp <- emp %>% mutate(model = "empirical")
-                    
-   # dfout <- dfout %>% bind_rows(dsc) #%>%
-      #bind_rows(empp)
-           
  ggplot(data = dfout)+
       geom_line(aes(x = agedays, y = p, color = model, group = model), size = 1.2, alpha = 0.5 )+
       ylim(c(0,1))+
@@ -215,21 +242,64 @@ for(i in items){
   
   p <- 
    ggplot(data = dfout %>% filter(item == i))+
-      geom_line(aes(x = agedays, y = p, color = model, group = model), size = 1.2, alpha = 0.5 )+
-      geom_point(data = empp %>% filter(item == i), aes(x = agedays, y = p), color= "darkgrey" )+
+      geom_line(aes(x = agedays/365.25*12, y = p, color = model, group = model), size = 1.2, alpha = 0.5 )+
+      geom_point(data = empp %>% filter(item == i), aes(x = agedays/365.25*12, y = p), color= "darkgrey" )+
       ylim(c(0,1))+
-      geom_point(data = empest %>% filter(item == i), aes(x = agedays, y = p), size = 2)+
+      geom_point(data = empest %>% filter(item == i), aes(x = agedays/365.25*12, y = p), size = 2)+
       geom_abline(aes(intercept = 0.1, slope = 0))+
       geom_abline(aes(intercept = 0.5, slope = 0))+
       geom_abline(aes(intercept = 0.9, slope = 0)) +
+    xlab("Leeftijd in maanden")
     ggtitle(paste("item:", i, "-", lab))
  plots[[i]] <- p 
 }
 
 #Export
-pdf('results/vwc_approaches_pt_geend.pdf',height = 6, width = 8)
+pdf('results/vwc_approaches_pt_geend2.pdf',height = 6, width = 8)
 plots
 dev.off()
+
+
+```
+
+
+```{r}
+
+
+
+
+     
+    dsc1 <- dipa_du %>% mutate(model = "p_dscore_dutch")
+    dsc2 <- dipa_gs %>% mutate(model = "p_dscore_gsed")
+                    
+    dfout <- dfout %>% bind_rows(dsc1, dsc2) 
+    
+plots <- list()
+
+for(i in items){
+  lab <- dscoreddi::itemtableVWO %>% filter(item == i) %>% pull(labelNL)
+  
+  p <- 
+   ggplot(data = dfout %>% filter(item == i))+
+      geom_line(aes(x = agedays/365.25*12, y = p, color = model, group = model), size = 1.2, alpha = 0.5 )+
+      geom_point(data = empp %>% filter(item == i), aes(x = agedays/365.25*12, y = p), color= "darkgrey" )+
+      ylim(c(0,1))+
+      geom_point(data = empest %>% filter(item == i), aes(x = agedays/365.25*12, y = p), size = 2)+
+      geom_abline(aes(intercept = 0.1, slope = 0))+
+      geom_abline(aes(intercept = 0.5, slope = 0))+
+      geom_abline(aes(intercept = 0.9, slope = 0)) +
+    ggtitle(paste("item:", i, "-", lab))+
+    xlab("Leeftijd in maanden")
+ plots[[i]] <- p 
+}
+
+#Export
+pdf('results/vwc_approaches_pt_metd.pdf',height = 6, width = 8)
+plots
+dev.off()
+
+
+           
     
 ```
 
@@ -250,7 +320,7 @@ pref <- bind_rows(
 ```{r, fig.height=11, fig.width=10}
 
  ggplot(data = pref %>%
-                     filter(sideA == 1), #selecteer milestons met A10 < 15 maanden
+                    filter(sideA == 1), #selecteer milestons met A10 < 15 maanden
         aes(x = reorder(labelNLn, -nr),  y= A50, color = computation, group = computation)
                    ) + #changed
             geom_point()+

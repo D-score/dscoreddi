@@ -17,11 +17,16 @@ shinyServer(function(input, output) {
     # volgende stap is het aanpassen van de highlight variabele door de ingevoerde van wiechen kenmerken tijdens het consult.
     pref <- reactive({
 
-         item_candidates <- prefdat %>% filter(sideA==1 | sideB ==1) %>% select(item)
+         item_candidates <- prefdat_EN %>% filter(sideA==1 | sideB ==1) %>% select(item)
         itembank_candidates <- itembank %>% filter(item %in% item_candidates[[1]])
-        selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = expanded_reference, scalefactor = 2.099986, leniency = input$refperc, n = input$suggest)$item
+        selected_items <- dinstrument::dform1(itembank = itembank_candidates,
+                                              ageband = input$agemos,
+                                              reference = expanded_reference |> filter(population == "dutch" & key == "dutch"),
+                                              scalefactor = 2.099986,
+                                              leniency = input$refperc,
+                                              n = input$suggest)$item
 
-            prefdat %>%
+        prefdat_EN %>%
             mutate(highlight = ifelse(item %in% selected_items, "#e6550d", "black"),
                    bold = ifelse(item %in% selected_items, "bold", "plain"))
 

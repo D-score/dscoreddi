@@ -22,7 +22,7 @@ passed_items <- c("ddicmm029", "ddicmm030", "ddifmd001", "ddifmd002", "ddifmd003
 
 #child data for demo
 # references <- dscore::builtin_references %>%
-#   filter(pop == "dutch") %>%
+#   filter(population == "dutch" & key == "dutch") %>%
 #   mutate(month = age * 12) %>%
 #   select(month, SDM2:SDP2) %>%
 #   filter(month <= 60) %>%
@@ -52,9 +52,9 @@ if(!is.na(agemos)){
     pull(item)
 
   itembank_candidates <- itembank_vwc %>%
-    filter(item %in% item_candidates)
+    filter(item %in% item_candidates & key == "dutch")
 
-  selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = agemos, reference = dscoreddi::expanded_reference, population = "dutch", leniency = refperc, n = suggest)$item
+  selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = agemos, reference = dscoreddi::expanded_reference %>% filter(population == "dutch" & key == "dutch"), population = "dutch", leniency = refperc, n = suggest)$item
 }
 
 pref <-
@@ -80,3 +80,10 @@ dscoreddi::prefdat %>%
 #1A80C4 - blue color
 #31a354 - green color
 #e6550d - red color
+
+references <- dscore::builtin_references %>%
+  filter(population == "dutch" & key == "dutch") %>%
+  mutate(month = age * 12) %>%
+  select(month, SDM2:SDP2) %>%
+  filter(month <= 60) %>%
+  pivot_longer(names_to = "centile", values_to = "d", cols = -month)

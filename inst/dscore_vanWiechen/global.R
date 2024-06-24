@@ -14,7 +14,7 @@ library(gseddata)
 
 ## references
 references <- dscore::builtin_references %>%
-  filter(pop == "dutch") %>%
+  filter(population == "dutch" & key == "dutch") %>%
   mutate(month = age * 12) %>%
   select(month, SDM2:SDP2) %>%
   filter(month <= 60) %>%
@@ -22,8 +22,8 @@ references <- dscore::builtin_references %>%
 
 theme_set(theme_light())
 ## model and observed pass per item
-model_input <- dmetric::smoccmodel
-data_input <- dmetric::gcdg_lean
+model_input <- dscoreddi::smoccmodel
+data_input <- dscoreddi::gcdg_lean
 
 pass <-
   data_input$itm %>%

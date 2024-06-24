@@ -26,7 +26,7 @@ shinyServer(function(input, output) {
         itembank_candidates <- itembank_vwc %>%
           filter(item %in% item_candidates)
 
-        selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = dscoreddi::expanded_reference, population = "dutch", leniency = input$refperc, n = input$suggest)$item
+        selected_items <- dinstrument::dform1(itembank = itembank_candidates, ageband = input$agemos, reference = dscoreddi::expanded_reference %>% filter(population == "dutch", key == "dutch"), population = "dutch", leniency = input$refperc, n = input$suggest)$item
     }
 
             dscoreddi::prefdat %>%

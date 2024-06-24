@@ -5,7 +5,7 @@
 \alias{itembank_vwc}
 \title{This is data to be included in my package}
 \format{
-An object of class \code{data.frame} with 81 rows and 8 columns.
+An object of class \code{data.frame} with 162 rows and 9 columns.
 }
 \usage{
 itembank_vwc
