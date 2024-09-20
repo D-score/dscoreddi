@@ -132,7 +132,7 @@ pref_log <- dscoreddi::prefdat %>%
 
 ```{r}
       
-   scalefactor <- 2.09
+   scalefactor <- 4.064
    p <- c(1:100)
    reference <- dscoreddi::expanded_reference |> dplyr::filter(population == "dutch" & key == "gsed2406")
    
@@ -263,12 +263,14 @@ dev.off()
 ```
 
 
-```{r}
+```{r eval=FALSE, include=TRUE}
 
 
+empest <- percentile_age %>% pivot_longer(A10:A90, names_to = "perc", values_to = "agemos") %>%
+  mutate(p = as.numeric(gsub("A", "", perc))/ 100,
+         agedays = round(agemos / 12 * 365.25,0))
 
 
-     
     dsc1 <- dipa_du %>% mutate(model = "p_dscore_dutch")
     dsc2 <- dipa_gs %>% mutate(model = "p_dscore_gsed")
                     

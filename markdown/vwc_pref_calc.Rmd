@@ -53,9 +53,7 @@ function (model = NULL, itembank = NULL, scalefactor = NULL,
 
 ```{r}
 
-refdata <- dmetric::calculate_age_equivalents(itembank = itembank_vwc, scalefactor = 2.099986, p = c(10, 50, 90), reference = expanded_reference)
-
-reference1 <- dscore::builtin_references %>% filter(population == "dutch" & key == "gsed2406") %>% 
+reference1 <- dscore::builtin_references %>% filter(population == "dutch" & key == "dutch") %>% 
   pivot_longer(P3:P97, names_to = "percentile", values_to = "d")
 
 ggplot(reference1, aes(age * 12, d, group = percentile))+
@@ -75,11 +73,11 @@ Bepaal voor het kenmerk "Stapelt 3 blokjes" de D-score waarbij respectievelijk, 
 ```{r}
 #input: scalefactor, itembank tau, percentiles
 scalefactor <- 2.099986
-example <- itembank_vwc[36,c("item", "tau", "label")]
+example <- itembank_vwc %>% filter(item == "ddifmd015" & key ==  "dutch") %>% dplyr::select(c("item", "tau", "label"))
 p1 <- 1:100
 
 #input reference
-reference <- dscoreddi::expanded_reference %>% mutate(agemos = age * 12)
+reference <- dscoreddi::expanded_reference %>% filter(population == "dutch" & key == "dutch") %>% mutate(agemos = age * 12)
 
 #compute logistic function and transform to d-score scale
 lg <- qlogis(p1/100)
@@ -119,7 +117,7 @@ ggplot(reference, aes(agemos, mu))+
   geom_line()+
   ggtitle("Leeftijd bij gemiddelde D-score")+
   ylab("D-score")+
-  scale_x_continuous("Leeftijd in maanden", breaks = seq(0,60, 3))+
+  scale_x_continuous("Leeftijd in maanden", breaks = seq(0,60, 3), limits = c(0, 60))+
   geom_segment(y = df[df$p==10, "d"], 
                x = -10, 
                xend = approx(x = reference$mu, y = reference$agemos, xout = df[df$p==10, "d"])$y, 
@@ -158,7 +156,7 @@ ggplot(reference, aes(agemos, mu))+
 Deze punten kunnen we vervolgens in het Van Wiechen Continue plaatje aangeven.
 
 ```{r}
-vwcdf <- dmetric::calculate_age_equivalents(itembank = itembank_vwc[36,],scalefactor = 2.099986, p = c(10, 50, 90), reference = expanded_reference)
+vwcdf <- dmetric::calculate_age_equivalents(itembank = itembank_vwc %>% filter(key == "dutch" & item == "ddifmd015"),scalefactor = 2.099986, p = c(10, 50, 90), reference = reference1)
 
 
 
