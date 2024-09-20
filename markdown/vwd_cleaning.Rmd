@@ -1,0 +1,348 @@
+---
+title: "Clean Van Wiechen data JGZ"
+author: "Iris Eekhout"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(dscore)
+library(ggplot2)
+library(knitr)
+library(broom)
+```
+
+## Samenvatting
+
+In deze notitie evalueren we het effect van het doorscoren (terugminnen en doorplussen) van item scores op de D-score. Hiermee willen we bekijken wat het effect is van doorscoren en het al dan niet toepassen van een leeftijdslimiet hierbij. We maken een vergelijking tussen drie versies van de data:
+
+* Ruwe data, zoals verzameld
+* Volledig doorscoren: een niet behaald item op voorgaande contactmomenten als 0 scoren, een behaald item op opvolgende contactmoment als 1 scoren.
+* Doorscoren met leeftijdslimiet: doorscoren van items, maar binnen de leeftijdsrange waarop het kenmerk afgenomen kan worden.
+
+Daarnaast hanteren we een minimum van 3 item scores voor een D-score bepaling.
+
+Voor het leeftijdslimiet per kenmerk gaan we uit van de leeftijd waarop het kenmerk wordt afgenomen volgens het van Wiechen schema. Dan is de ondergrens de leeftijd van het voorafgaand contactmoment, en de bovengrens de leeftijd van het opvolgend contactmoment. Deze leeftijdsgrens wordt alleen toegepast voor het doorscoren (terugminnen en doorplussen), geregistreerde data blijft behouden.
+
+De D-scores (daz) bepaald in deze 3 versies van de data wordt (1) opzichzelf geevalueerd; (2) onderling vergeleken; en (3) extern gevalideerd door de relatie met zwangerschapsduur te bekijken.
+
+*Conclusies*
+
+* Volledig doorscoren zorgt voor een grote toename in item scores per data-regel.
+* Volledig doorscoren zorgt voor een lagere daz in vergelijking met de ruwe data.
+* Doorscoren met leeftijdslimiet zorgt voor soms een lagere en soms een hogere daz. 
+* De relatie met zwangerschapsduur is het sterkst voor de daz obv doorscoren met leeftijdslimiet, maar de verschillen onderling zijn klein. 
+
+
+## Example data
+
+Volledige SMOCK data nu gebruikt.
+
+```{r}
+#D-score berekenen met cleaningstappen JGZ data
+vwd <- childdevdata::gcdg_nld_smocc %>%
+  mutate(agemos = agedays/365.25 * 12, 
+         age = agemos / 12)
+
+#set.seed(62548)
+#subselection <- sample(unique(vwd$subjid), 100)
+
+#vwd <- vwd %>% filter(subjid %in% subselection)
+
+dgsed <- vwd %>%
+  dscore::dscore(data = .,
+                 items = colnames(vwd)[grepl("^ddi",colnames(vwd))],
+                 itembank = dscore::builtin_itembank[dscore::builtin_itembank$key == "gsed2212",],
+                 key = "gsed2212",
+                 population = "dutch")
+
+dgsedc <- dgsed %>% filter(n >= 3)
+
+ggplot(dgsedc, aes(a, d))+
+  geom_point() +
+  ggtitle("D-score voor leeftijd (ruwe data)")
+
+
+ggplot(dgsedc, aes(a, n))+
+  geom_point() +
+  ggtitle("Aantal kenmerken in data voor leeftijd (ruwe data)")
+
+
+
+ggplot(dgsedc, aes(a, p))+
+  geom_point() +
+  ggtitle("Kans op behalen van afgenomen kenmerken voor leeftijd (ruwe data)")
+
+```
+
+
+## Doorplussen en terugminnen als gegevens van omliggende contactmomenten beschikbaar zijn.
+
+Van wiechen items terugminnen en doorplussen, dus wanneer een kenmerk niet behaald is, op voorgaande contactmomenten dit kenmerk ook als 0 scoren (tot een minimum leeftijd voor het kenmerk). En wanneer een kenmerk is behaald, deze op volgende contactmomenten als 1 te scoren (tot een maximum leeftijd voor het kenmerk). 
+
+* Doorscoren alleen: alle items doorplussen en teruggeminnen tot zover er data / contactmomenten zijn. Dan zijn er zeker item responsen die praktisch niet kunnen voorkomen. 
+* Doorscoren met limiet: doorplussen en terugminnen tot bepaalde leeftijdsgrenzen per kenmerk. Dus voor elk kenmerk geld een leeftijdsrange waarop deze doorgescoord mag worden. 
+
+**Leeftijdsrange per kenmerk**
+
+```{r}
+
+## age limit is next cm age
+cm_max <- data.frame(
+  month =   c(1, 2, 3, 6,  9, 12, 15, 18, 24, 30, 36, 42, 48, 55),
+  max_lft = c(2, 3, 6, 9, 12, 15, 18, 24, 30, 36, 42, 48, 55, 78),
+  min_lft = c(0, 1, 2, 3,  6,  9,  12, 15, 18, 24, 30, 36, 42, 48 )
+)
+
+itemtableVWO <- dscoreddi::itemtableVWO %>% select(item, labelNL, occ, month) %>%
+  left_join(cm_max, by = "month") %>% select(item, labelNL, occ, month, min_lft, max_lft)
+
+itemtableVWO %>% kable()
+```
+
+
+**Doorscoren van de items in de data**
+
+```{r}
+doorscoren <- function(age, item){
+  #terugminnen
+  if(any(item == 0, na.rm = T)){
+    age0 = max(age[which(item == 0)])
+    #terugminnen
+    item = ifelse(age < age0, 0, item)
+    #tot minimum leeftijd
+    
+  }
+  if(any(item == 1, na.rm = T)){
+    age1 = min(age[which(item ==1)])
+    item = ifelse(age > age1, 1, item)
+  }
+  item
+}
+
+
+# per "id", leeftijd in maanden staat in kolom "agemos"
+vwd_add <-
+  vwd %>%
+  group_by(subjid) %>%
+  mutate_at(vars(starts_with("ddi")),
+            ~doorscoren(agemos, .)) %>% ungroup()
+
+#dscore bepalen obv doorgescoorde items
+dgsed_add <- vwd_add %>%
+  dscore::dscore(data = .,
+                 items = colnames(vwd_add)[grepl("^ddi",colnames(vwd_add))],
+                 itembank = dscore::builtin_itembank[dscore::builtin_itembank$key == "gsed2212",],
+                 key = "gsed2212",
+                 population = "dutch")
+
+
+dgsed_addc <- dgsed_add %>% filter(n >= 3)
+
+ggplot(dgsed_addc, aes(a, d))+
+  geom_point() +
+  ggtitle("D-score voor leeftijd (volledig doorscoren)")
+
+
+ggplot(dgsed_addc, aes(a, n))+
+  geom_point() +
+  ggtitle("Aantal kenmerken in data voor leeftijd (volledig doorscoren)")
+
+
+
+ggplot(dgsed_addc, aes(a, p))+
+  geom_point() +
+  ggtitle("Kans op behalen van afgenomen kenmerken voor leeftijd (volledig doorscoren)")
+
+
+
+
+doorscoren_limit <- function(age, item, itname, itemtable){
+  
+  minage <- itemtable |> filter(item == itname) |> pull(min_lft)
+  maxage <- itemtable |> filter(item == itname) |> pull(max_lft)
+
+  if(any(item == 0, na.rm = T)){
+    age0 = max(age[which(item == 0)])
+    item = ifelse(age < age0 & age > minage, 0, item)
+
+  }
+  if(any(item == 1, na.rm = T)){
+    age1 = min(age[which(item ==1)])
+    item = ifelse(age > age1 & age < maxage, 1, item)
+  }
+  item
+}
+
+
+# per "id", leeftijd in maanden staat in kolom "agemos"
+vwd_add_limit <-
+  vwd %>%
+  group_by(subjid) %>%
+  mutate(across(starts_with("ddi"), 
+            ~doorscoren_limit(agemos, .,itname = cur_column(), itemtable = itemtableVWO))) %>% ungroup()
+
+#dscore bepalen obv doorgescoorde items
+dgsed_add_limit <- vwd_add_limit %>%
+  dscore::dscore(data = .,
+                 items = colnames(vwd_add_limit)[grepl("^ddi",colnames(vwd_add_limit))],
+                 itembank = dscore::builtin_itembank[dscore::builtin_itembank$key == "gsed2212",],
+                 key = "gsed2212",
+                 population = "dutch")
+
+dgsed_add_limitc <- dgsed_add_limit %>% filter(n >= 3)
+
+
+ggplot(dgsed_add_limitc, aes(a, d))+
+  geom_point() +
+  ggtitle("D-score voor leeftijd (doorscoren met leeftijdslimiet)")
+
+
+ggplot(dgsed_add_limitc, aes(a, n))+
+  geom_point() +
+  ggtitle("Aantal kenmerken in data voor leeftijd (doorscoren met leeftijdslimiet)")
+
+
+
+ggplot(dgsed_add_limitc, aes(a, p))+
+  geom_point() +
+  ggtitle("Kans op behalen van afgenomen kenmerken voor leeftijd (doorscoren met leeftijdslimiet)")
+
+
+```
+
+
+
+## Vergelijking van resultaten
+
+In dit voorbeeld heeft de ruwe data meer data dan de data waarin we restricteren op minimum en maximum leeftijd. Dit komt omdat hier de data verzameling niet is gebaseerd op "screening". Dit geeft eigenlijk aan dat we de leeftijdrange van de kenmerken zouden moeten verruimen. Wellicht per kenmerk meer kijken naar Van Wiechen Continue. We vergelijken vier mogelijkheden:
+
+* *raw* = de D-scores op basis van de verzamelde data.
+* *doorscoren* = de D-scores op basis van doorplussen en terugminnen, zonder verdere leeftijdsrestricties
+* *door_limit* = de D-scores op basis van doorplussen en terugminnen met zowel een minimum, als een maximum leeftijd waarop elk kenmerk mee mag doen. 
+
+```{R}
+dcomp <-
+bind_rows(dgsed %>% mutate(clean = "raw"),
+          dgsed_add %>% mutate(clean = "doorscoren"),
+          dgsed_add_limit %>% mutate(clean = "door_limit")
+) %>% filter(n >= 3)
+```
+
+
+**Aantal kenmerken dat meetelt voor de score per cleaning methode**
+
+```{r}
+ggplot(dcomp, aes(a, n, color = clean))+
+  geom_point()
+
+ggplot(dcomp, aes(d, n, color = clean))+
+  geom_point()
+
+ggplot(dcomp, aes(daz, n, color = clean))+
+  geom_point()
+
+``` 
+
+
+**D-score schatting en kans op behalen van kenmerken**
+
+De impact op de D-score inschatting lijkt niet erg groot.
+
+```{r}
+ggplot(dcomp, aes(a, d, color = clean))+
+  geom_point()
+
+ggplot(dcomp, aes(a, daz, color = clean))+
+  geom_point()
+
+ggplot(dcomp, aes(a, p, color = clean))+
+  geom_point()
+
+```
+
+
+**Analyse van verschil DAZ**
+
+Voor deze vergelijking is de selectie voor minimaal aantal kenmerken voor een D-score (n >= 3), gemaakt obv de ruwe data.
+```{R}
+
+compare <- data.frame(
+                 daz_door_raw = dgsed_add$daz - dgsed$daz,
+                 daz_doorlim_raw = dgsed_add_limit$daz - dgsed$daz,
+                 daz_raw = dgsed$daz,
+                 daz_door = dgsed_add$daz,
+                 daz_doorlim = dgsed_add_limit$daz,
+                 age = dgsed$a,
+                 nraw = dgsed$n) %>% filter(nraw >= 3)
+
+ggplot(compare, aes(age, daz_door_raw) )+
+  geom_point()+
+  ylab("DAZ doorscoren  - DAZ ruwe data")
+
+ggplot(compare, aes(age, daz_doorlim_raw) )+
+  geom_point()+
+  ylab("DAZ doorscoren met limit - DAZ ruwe data")
+
+```
+
+**Directe vergelijking van DAZ**
+
+Door het doorscoren wordt de DAZ iets lager. 
+
+```{r}
+ggplot(compare, 
+       aes(daz_raw, daz_door))+
+       geom_point()+
+       xlab ("DAZ ruwe data")+ ylab("DAZ volledig doorscoren")
+ggplot(compare, 
+       aes(daz_raw, daz_doorlim))+
+       geom_point()+
+       xlab ("DAZ ruwe data")+ ylab("DAZ doorscoren met limiet")
+ggplot(compare, 
+       aes(daz_door, daz_doorlim))+
+       geom_point()+
+       xlab ("DAZ volledig doorscoren")+ ylab("DAZ doorscoren met limiet")
+
+
+```
+
+
+## Regressie D-score en gestational age
+
+**Gestational age**
+
+Hier lijkt doorscoren met leeftijdslimieten het meeste variantie te verklaren en de sterkste associatie te hebben. 
+
+
+*Ruwe data*
+
+```{r}
+vwd_d <- dgsed %>% bind_cols(vwd) %>% filter(n >= 3)
+lm(daz ~ gagebrth, data = vwd_d) %>% summary
+```
+
+
+*Volledig doorscoren*
+
+```{r}
+
+vwd_add <- dgsed_add %>% bind_cols(vwd) %>% filter(n >= 3)
+lm(daz ~ gagebrth, data = vwd_add) %>% summary
+
+```
+
+*Doorscoren met leeftijdslimiet*
+
+```{r}
+vwd_add_limit <- dgsed_add_limit %>% bind_cols(vwd) %>% filter(n >= 3)
+lm(daz ~ gagebrth, data = vwd_add_limit) %>% summary
+
+```
+
+
