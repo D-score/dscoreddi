@@ -59,7 +59,7 @@ ggplot()+
 
 
 
-#illustratie
+#illustratie voor populatie waarden
 library(ggplot2)
 library(dplyr)
 library(tidyr)
@@ -67,15 +67,76 @@ library(tidyr)
 references <- dscore::builtin_references %>%
   filter(population == "dutch" & key == "dutch") %>%
   mutate(month = age * 12) %>%
-  select(month, SDM2:SDP2) %>%
+  select(month, P10,SDM2:SDP2) %>%
   filter(month <= 60) %>%
-  pivot_longer(names_to = "centile", values_to = "d", cols = -month)
+  pivot_longer(names_to = "centile", values_to = "d", cols = -c(month, P10))
+
+NLdsc1 <- dscore::dscore(childdevdata::gcdg_nld_smocc, xname = "agedays", xunit = "days", key = "dutch", population = "dutch")
+
+NLDsc <- NLdsc1 %>%
+  filter(a > 0.8 & a <1.2 | a > 1.8 & a < 2.2) %>%
+  slice_sample(n = 400) %>%
+  mutate(b10 = ifelse(daz < -1.28, 0, 1),
+         agr = ifelse(a < 1.5, 1, 2))
+
+
 
 
 ggplot()+
-  geom_line(data =references, aes(x = month, y = d, group = centile), color = "black", size = 0.5, alpha = 0.5)+
-  geom_line(data =references %>% filter(centile %in% c("SD0", "SDM2", "SDP2")), aes(x = month, y = d, group = centile), color = "black", size = 0.8, alpha = 0.5)+
+  geom_line(data =references, aes(x = month/12, y = d, group = centile), color = "#228B22", size = 0.5, alpha = 1)+
+  geom_line(data =references %>% filter(centile %in% c("SD0", "SDM2", "SDP2")), aes(x = month/12, y = d, group = centile), color = "#228B22", size = 0.8, alpha =1)+
+  #geom_line(data = references, aes(x = month/12, y = P10), color = "red", size = 1)+
+  #geom_point(data=NLDsc, aes(x = a, y = d))+
   ylab("D-score")+
-  xlab("Leeftijd (maanden)")+
-  theme_minimal()
+  xlab("Leeftijd (jaren)")+
+  theme_light()+
+  scale_x_continuous(breaks = seq(0, 4, by = 0.25), minor_breaks = seq(0, 4, by = 0.083333), labels = function(x) ifelse(x %% 1 == 0, x, ""), limits = c(0,4) ) +
+  scale_y_continuous(breaks = seq(0, 100, by = 5), minor_breaks = seq(0, 100, by = 1), labels = function(y) ifelse(y %% 5 == 0, y, "")) +
+  theme(panel.grid.major = element_line(size = 0.8), panel.grid.minor = element_line(size = 0.2))+
+  ggtitle("D-score voor leeftijd")
 
+
+ggplot()+
+  geom_line(data =references, aes(x = month/12, y = d, group = centile), color = "#228B22", size = 0.5, alpha = 1)+
+  geom_line(data =references %>% filter(centile %in% c("SD0", "SDM2", "SDP2")), aes(x = month/12, y = d, group = centile), color = "#228B22", size = 0.8, alpha =1)+
+  #geom_line(data = references, aes(x = month/12, y = P10), color = "red", size = 1)+
+  geom_point(data=NLDsc, aes(x = a, y = d))+
+  ylab("D-score")+
+  xlab("Leeftijd (jaren)")+
+  theme_light()+
+  scale_x_continuous(breaks = seq(0, 4, by = 0.25), minor_breaks = seq(0, 4, by = 0.083333), labels = function(x) ifelse(x %% 1 == 0, x, ""), limits = c(0,4) ) +
+  scale_y_continuous(breaks = seq(0, 100, by = 5), minor_breaks = seq(0, 100, by = 1), labels = function(y) ifelse(y %% 5 == 0, y, "")) +
+  theme(panel.grid.major = element_line(size = 0.8), panel.grid.minor = element_line(size = 0.2))+
+  ggtitle("D-score voor leeftijd")
+
+ggplot()+
+  geom_line(data =references, aes(x = month/12, y = d, group = centile), color = "#228B22", size = 0.5, alpha = 1)+
+  geom_line(data =references %>% filter(centile %in% c("SD0", "SDM2", "SDP2")), aes(x = month/12, y = d, group = centile), color = "#228B22", size = 0.8, alpha = 1)+
+  geom_line(data = references, aes(x = month/12, y = P10), color = "red", size = 1)+
+  geom_point(data=NLDsc, aes(x = a, y = d))+
+  ylab("D-score")+
+  xlab("Leeftijd (jaren)")+
+  theme_light()+
+  scale_x_continuous(breaks = seq(0, 4, by = 0.25), minor_breaks = seq(0, 4, by = 0.083333), labels = function(x) ifelse(x %% 1 == 0, x, ""), limits = c(0,4) ) +
+  scale_y_continuous(breaks = seq(0, 100, by = 5), minor_breaks = seq(0, 100, by = 1), labels = function(y) ifelse(y %% 5 == 0, y, "")) +
+  theme(panel.grid.major = element_line(size = 0.8), panel.grid.minor = element_line(size = 0.2))+
+  ggtitle("D-score voor leeftijd")
+
+
+
+ggplot()+
+  geom_line(data =references, aes(x = month/12, y = d, group = centile), color = "#228B22", size = 0.5, alpha = 1)+
+  geom_line(data =references %>% filter(centile %in% c("SD0", "SDM2", "SDP2")), aes(x = month/12, y = d, group = centile), color = "#228B22", size = 0.8, alpha = 1)+
+  geom_line(data = references, aes(x = month/12, y = P10), color = "red", size = 1)+
+  geom_point(data=NLDsc, aes(x = a, y = d, group = factor(b10), color = factor(b10)))+
+  ylab("D-score")+
+  xlab("Leeftijd (jaren)")+
+  theme_light()+
+  scale_x_continuous(breaks = seq(0, 4, by = 0.25), minor_breaks = seq(0, 4, by = 0.083333), labels = function(x) ifelse(x %% 1 == 0, x, ""), limits = c(0,4) ) +
+  scale_y_continuous(breaks = seq(0, 100, by = 5), minor_breaks = seq(0, 100, by = 1), labels = function(y) ifelse(y %% 5 == 0, y, "")) +
+  theme(panel.grid.major = element_line(size = 0.8), panel.grid.minor = element_line(size = 0.2))+
+  theme(legend.position = "none")+
+  ggtitle("D-score voor leeftijd")
+
+
+NLDsc %>% group_by(agr) %>% summarise(below10 = mean(1-b10))
