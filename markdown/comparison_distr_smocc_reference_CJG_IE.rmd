@@ -1,0 +1,176 @@
+---
+title: Validation of reference study data against reference table for D-score distribution
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r} 
+library(dplyr) 
+library(lubridate) 
+library(rlang) 
+library(ggplot2) 
+library(dscore) 
+```
+
+
+# Load reference data set and calculate D-score 
+
+```{r}
+smocc <- childdevdata::gcdg_nld_smocc |>
+  
+  # Remove cases where age is missing (cannot calculate D-score for these anyway) 
+  filter(!is.na(agedays))
+
+# Calculate D-score 
+smocc_ds <- smocc |>
+  
+  # Convert age in days to age in years 
+  mutate(age = days(agedays) / years(1)) |>
+  
+  # Calculate D-score
+  dscore(xunit = "decimal", xname = "age", key = "gsed2406", population = "dutch", prepend = c("age", "subjid"))
+```
+
+
+# Filtering for age based on specified bandwidth 
+
+```{r}
+# Specify filtering age and bandwidth
+age_spec <- 1.5
+bandwidth <- 0.5
+smocc_ds_filtered <- smocc_ds |>
+
+  # Filter all follow ups with bandwidth around specified age
+  filter(age < age_spec + bandwidth / 2 & age > age_spec - bandwidth / 2) |> 
+  mutate(dist_to_age_spec  = abs(age - age_spec)) |>
+  
+  # In case of multiple follow-ups, keep the one closest to age_spec yrs 
+  group_by(subjid) |>
+  slice(which.min(dist_to_age_spec)) |>
+  ungroup()
+```
+
+
+# Comparing 10th percentile of the data against reference table
+
+```{r}
+# 10% from standard normal distribution and from DAZ for reference study data 
+qnorm(0.1)
+quantile(smocc_ds_filtered$daz, 0.1, na.rm = TRUE)
+
+# 10% from D-score distribution according to reference table and for reference study data
+# We use the average age based on the filtered data
+age <- mean(smocc_ds_filtered$age)
+zad(qnorm(0.1), age, reference_table = get_reference(key = "gsed2406", population = "dutch"), dec = 10)
+quantile(smocc_ds_filtered$d, 0.1, na.rm = TRUE)
+```
+
+
+# Comparing DAZ distribution against standard normal 
+
+```{r}
+# Generate the percentiles
+percentiles_seq <- seq(0.0001, 0.99999, 0.00001)
+# Generate standard normal densities 
+daz_ref_q <- qnorm(percentiles_seq) 
+daz_ref_pdf <- dnorm(daz_ref_q)
+
+# Plot reference distributions, together with empirical distributions 
+# (empirical) PDFs
+ggplot() +
+  geom_density(aes(x = smocc_ds_filtered$daz, color = "data_ref")) + 
+  geom_line(aes(x = daz_ref_q, y = daz_ref_pdf, color = "reference"))
+
+# (empirical) CDFs 
+ggplot() +
+  stat_function(fun = ecdf(smocc_ds_filtered$daz), colour = "blue") + 
+  geom_line(aes(x = daz_ref_q, y = percentiles_seq, color = "reference"))
+
+
+```
+
+
+# Comparing D-score distribution between reference table and reference study data 
+
+```{r}
+# Get parameters for BCT distribution around age_spec (same as with get_reference(), but we filter on age just to see
+# the relevant parameters)
+rt <- dscore::builtin_references |>
+  filter(age > 1.35 & age < 1.85) |> 
+  filter(population == "dutch",
+         key == "gsed2406",
+         ) |>
+  arrange(age) # |> select(age, P10)
+
+# Calculate BCT parameters based on reference table
+# We use the average age based on the filtered data
+age <- mean(smocc_ds_filtered$age)
+mu <- approx(x = rt[, "age"], y = rt[, "mu"], xout = age)$y
+sigma <- approx(x = rt[, "age"], y = rt[, "sigma"], xout = age)$y 
+nu <- approx(x = rt[, "age"], y = rt[, "nu"], xout = age)$y
+tau <- approx(x = rt[, "age"], y = rt[, "tau"], xout = age)$y
+
+# Get D-score based on DAZ (is already present in smocc_ds_filtered, but we need it corresponding with percentiles_seq
+# to make a CDF)
+dscore_ref_q <- zad(daz_ref_q, rep(age, length(daz_ref_q), reference_table = rt), dec = 15)
+
+# Get D-score density from BCT distribution
+dscore_ref_pdf <- gamlss.dist::dBCT(dscore_ref_q, mu, sigma, nu, tau)
+
+# test
+# density <- gamlss.dist::dBCT(dscore_ref_q, 65.5, 0.0512, 1.9962, 16.786)
+# 
+# Plot reference distributions, together with empirical distributions 
+# (empirical) PDFs
+ggplot() +
+  geom_density(aes(x = smocc_ds_filtered$d, color = "data_ref")) + 
+  geom_line(aes(x = dscore_ref_q, y = dscore_ref_pdf, color = "reference"))
+
+# (empirical) CDFs 
+ggplot() +
+  stat_function(fun = ecdf(smocc_ds_filtered$d), color = "blue") + 
+  geom_line(aes(x = dscore_ref_q, y = percentiles_seq, color = "reference"))
+```
+## Toevoeging Iris
+
+Vergelijk de D-score met de referentie
+
+```{r}
+reference_table = get_reference(key = "gsed2406", population = "dutch")
+
+
+ggplot()+
+  geom_point(data = smocc_ds, aes(age, daz))
+
+ggplot()+
+  geom_histogram(data = smocc_ds_filtered, aes(daz), binwidth = 0.05)
+
+ggplot()+
+  geom_point(data = smocc_ds_filtered, aes(age, daz))
+
+ggplot()+
+  geom_histogram(data = smocc_ds_filtered, aes(daz))
+
+
+ggplot()+
+  geom_point(data = smocc_ds, aes(age, d), color = "grey")+
+  geom_line(data= reference_table, aes(age, SD0))+
+  geom_line(data= reference_table, aes(age, SDM2))+
+  geom_line(data= reference_table, aes(age, SDP2))
+
+reference_table_filtered <-
+  reference_table |>
+filter(age < age_spec + bandwidth / 2 & age > age_spec - bandwidth / 2)
+
+ggplot()+
+  geom_point(data = smocc_ds_filtered, aes(age, d), color = "darkgrey")+
+  geom_line(data= reference_table_filtered, aes(age, SD0))+
+  geom_line(data= reference_table_filtered, aes(age, SDM2))+
+  geom_line(data= reference_table_filtered, aes(age, SDP2))
+
+
+
+```
+
