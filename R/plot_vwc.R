@@ -9,7 +9,9 @@
 #' @param vw_history data.frame with history of vw responses column c("age", "item", "value")
 #'
 #' @importFrom plotly plot_ly add_segments add_markers layout
-#' @importFrom dplyr mutate group_by filter slice left_join arrange rename desc pull
+#' @importFrom dplyr mutate group_by filter slice left_join arrange rename desc
+#' pull row_number summarise select
+#' @importFrom tidyr pivot_wider
 #' @importFrom forcats fct_reorder
 #' @importFrom rlang .data
 #'
@@ -44,7 +46,7 @@ plot_vwc <- function(
                 lastage = max(.data$agemos),
                 .groups = "drop") |>
       pivot_wider(names_from = "value", values_from = c("firstage", "lastage")) |>
-      left_join({pref |> select(item, month)}, by = "item") |>
+      left_join({data |> select(.data$item, .data$month)}, by = "item") |>
       mutate(
         value = NA,
         #als nooit behaald, value negatief
@@ -59,7 +61,7 @@ plot_vwc <- function(
         lastage_0 = ifelse(!is.na(.data$firstage_1) & .data$lastage_0 < .data$month, NA, .data$lastage_0),
 
         passtxt = ifelse(!is.na(.data$firstage_1), paste("eerst behaald in maand:", round(.data$firstage_1,0)), NA),
-        failtxt = ifelse(!is.na(.data$lastage_0), paste("niet behaald in maand:", round(.data$lastage_0,0)), NA) ) %>%
+        failtxt = ifelse(!is.na(.data$lastage_0), paste("niet behaald in maand:", round(.data$lastage_0,0)), NA) ) |>
       select(.data$item, .data$value, .data$firstage_1, .data$passtxt, .data$lastage_0, .data$failtxt)
 
   }
@@ -87,9 +89,11 @@ data |>
   A50 = ifelse(.data$nr %in% 52:54, NA, .data$A50),
   A90 = ifelse(.data$nr %in% 52:54, 12, .data$A90)) |>
   left_join(vwhist, by = "item") |>
+  arrange(desc(.data$A50)) |>
   mutate(
-    labelNLn = forcats::fct_reorder(.data$labelNLn, desc(.data$nr))) |>
-  arrange(desc(.data$nr))
+    order = row_number(),
+    labelNLn = forcats::fct_reorder(.data$labelNLn, .data$order))
+
 
 
 status <- plot_data |>
@@ -106,6 +110,7 @@ status <- plot_data |>
   pull(.data$status)
 
 
+plot_out <-
 plot_data |>
   plot_ly(x = ~A50,
           y= ~labelNLn,
@@ -156,7 +161,11 @@ plot_data |>
                   )
     ),
     showlegend = FALSE
-  ) |>
+  )
+
+if(!is.null(vw_history)){
+  plot_out <-
+    plot_out|>
   add_markers(
     x = ~firstage_1,
     y = ~labelNLn,
@@ -188,7 +197,10 @@ plot_data |>
                   )
     ),
     showlegend = FALSE
-  ) |>
+  )
+  }
+
+  plot_out|>
   layout(
     title = list(text = plot_title, xanchor = "right"),
     xaxis = list(
@@ -227,4 +239,6 @@ plot_data |>
            line = list(color = "black"))
     )
   )
+
+
 }
