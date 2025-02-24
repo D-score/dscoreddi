@@ -1,5 +1,7 @@
 #prefdat
 
+## DUTCH KEY
+
 #plot reference data for the van wiechen continue plot
 library(dscoreddi)
 
@@ -8,7 +10,7 @@ scale <- dmetric::smoccmodel$model$transform[2]
 
 refdata <- dmetric::calculate_age_equivalents(itembank = itembank_vwc %>% filter(key == "dutch"),
                                               scalefactor = scale,
-                                              p = c(10, 50, 90),
+                                              p = c(2, 10, 50, 90, 98),
                                               reference = dscoreddi::expanded_reference %>% filter(population == "dutch" & key == "dutch")) #%>% mutate(A90 = ifelse(D90 > 80 & is.na(A90), 80, A90))
 
 #load("data/itemtableVWO.rda")
