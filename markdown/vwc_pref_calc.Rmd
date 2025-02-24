@@ -11,6 +11,7 @@ library(dscoreddi)
 library(ggplot2)
 library(dplyr)
 library(dscore)
+library(openxlsx)
 library(tidyr)
 theme_set(theme_light())
 ```
@@ -172,7 +173,7 @@ ggplot(vwcdf)+ #selecteer milestons met A10 < 15 maanden
 
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 
 ib <- itembank_vwc
 p <- c(10, 50, 90)
@@ -194,6 +195,111 @@ matrix(ib$tau, nrow = nrow(ib), ncol = length(p)) +
 #de d-score in de p10 kolom geeft dus de d-score waarbij 10% van de kinderen dit item kan.
 
 
+
+```
+
+
+## Percentielen
+
+
+Eerst bepalen we de leeftijden voor elk percentiel op basis van de itembank, scalefactor en de referentie.
+De percentiel referenties gebruiken we dan om de data voor te bereiden die we gebruiken om de VWC plots te maken. 
+
+
+```{r}
+
+dscoreddi::smoccmodel$model$transform[2]
+refdataNL <- dmetric::calculate_age_equivalents(itembank = itembank_vwc |> filter(key == "dutch"),
+                                              scalefactor = 2.099986,
+                                              p = c(2, 10, 50, 90, 98),
+                                              reference = expanded_reference |> filter(population == "dutch" & key == "dutch")) |>
+  mutate(key = "dutch") 
+#load("data/itemtableVWO.rda")
+
+refdat <- refdataNL |>
+  mutate(
+    domain = substr(item, 4,5),
+    domein = dplyr::recode(domain, "cm" = "Communicatie",
+                           "fm" = "Fijne motoriek",
+                           "gm" = "Grove motoriek")) |>
+  #rename(leeftijd = A) |>
+  left_join(itemtableVWO |> select(item, labelNL, ID.VWO2005, month), by = "item") |>
+  mutate(nr = as.numeric(substr(item, 7, 9)),
+         # nr = ifelse(nr == 136, 35, nr), #dubbel met nr 035? -- 035 zit neit in model; 136 wel - wijzig op voorhand
+         # nr = ifelse(nr == 148, 40, nr), #dubbel met nr 040? -- 040 zit niet in model; 148 wel - wijzig op voorhand
+         nr = ifelse(nr == 068, 68.1, nr),
+         nr = ifelse(nr == 168, 68.2, nr),
+         nr = ifelse(nr == 268, 68.3, nr),
+         domein = ifelse(nr == 6, "Fijne motoriek", domein),
+
+         labelNLnr = paste(nr, labelNL, sep = ". "),
+         #labelNLn = ifelse(nr %in% 52:55, paste(nr, labelNL, sep = ".* "), labelNLn),
+         labelNLn = ifelse(month < 10, paste(labelNLnr, month, sep = " |  "),
+                           paste(labelNLnr, month, sep = " |") ),
+         labelNLn = ifelse(nr %in% 52:55, paste(labelNLnr, "**", sep = " | "), labelNLn),
+         labelNLn = forcats::fct_reorder(labelNLn, -nr),
+         sideA = ifelse(nr %in% c(1:12, 29:38, 52:67), 1, 0),
+         sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2, 68.3), 1, 0),
+         A2 = ifelse(is.na(A2), 0, A2),
+         A10 = ifelse(is.na(A10), 0, A10),
+         A50 = ifelse(is.na(A50), 0, A50),
+         A90 = ifelse(is.na(A90), 0, A90),
+         A98 = ifelse(is.na(A98), 0, A98)
+
+  ) |>
+  arrange(A50) |>
+  filter(sideA == 1 | sideB == 1)
+
+
+
+```
+
+
+```{r, fig.width=16, fig.height=20}
+
+ggplot(data = refdat , aes(y = reorder(labelNLn, -A98), x = A50))+
+  geom_point(size = 1)+
+  geom_errorbar(aes(xmin = A10, xmax = A90), size = 1) +
+  geom_errorbar(aes(xmin = A2, xmax = A98), size = 0.5, lty = 2) +
+  xlab("Leeftijd (maanden)")+
+  ylab("")+
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+```
+
+
+## Appendix
+
+```{r}
+vwtab <- read.xlsx("~/OneDrive - TNO/Documents/GitHub/dscoreddi/data-raw/data/vanwiechen_percentage_cm.xlsx")
+
+colnames(vwtab) <- c("nr", "NLlabel", "leeftijdwkn", "wk1", "wk2", "n/N", "%", "SMOCK", "SW", "Perc_D")
+
+vwtabDH <-
+  vwtab |>
+  mutate(mnd1 = wk1 * 7 / 30,
+         mnd1 = ifelse(is.na(mnd1), as.numeric(leeftijdwkn), mnd1),
+         mnd2 = wk2 * 7 / 30,
+         mnd2 = ifelse(is.na(mnd2), as.numeric(leeftijdwkn), mnd2),
+         mnd1 = round(mnd1,1),
+         mnd2 = round(mnd2,1),
+         DH = `%`,
+         DHr = round(`%`,0),
+         nr = ifelse(nr == 68.0, 68.2, nr)) |>
+  rowwise() |>
+  mutate(
+         mndm = mean(mnd1,mnd2, na.rm = T)
+
+  ) |>
+  full_join(refdat, by = "nr")
+
+AppendixA <- 
+refdat |>
+  select(labelNL, month, domein, A2, A10, A50, A90, A98)
+
+#change colnames >> look at stored file
+#store file in excel
 
 ```
 

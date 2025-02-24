@@ -6,10 +6,12 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library(dscoreddi)
 library(openxlsx)
 library(dplyr)
+library(knitr)
+library(kableExtra)
 library(ggplot2)
 theme_set(theme_light())
 ```
@@ -41,7 +43,7 @@ De percentiel referenties gebruiken we dan om de data voor te bereiden die we ge
 dscoreddi::smoccmodel$model$transform[2]
 refdataNL <- dmetric::calculate_age_equivalents(itembank = itembank_vwc |> filter(key == "dutch"),
                                               scalefactor = 2.099986,
-                                              p = c(10, 50, 90),
+                                              p = c(2, 10, 50, 90, 98),
                                               reference = expanded_reference |> filter(population == "dutch" & key == "dutch")) |>
   mutate(key = "dutch") 
 #load("data/itemtableVWO.rda")
@@ -70,9 +72,11 @@ refdat <- refdataNL |>
          labelNLn = forcats::fct_reorder(labelNLn, -nr),
          sideA = ifelse(nr %in% c(1:12, 29:38, 52:67), 1, 0),
          sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2, 68.3), 1, 0),
+         A2 = ifelse(is.na(A2), 0, A2),
          A10 = ifelse(is.na(A10), 0, A10),
          A50 = ifelse(is.na(A50), 0, A50),
-         A90 = ifelse(is.na(A90), 0, A90)
+         A90 = ifelse(is.na(A90), 0, A90),
+         A98 = ifelse(is.na(A98), 0, A98)
 
   ) |>
   arrange(nr)
@@ -84,9 +88,10 @@ refdat <- refdataNL |>
 
 ```{r, fig.width=16, fig.height=20}
 
-ggplot(data = refdat , aes(y = labelNLn, x = A50))+
+ggplot(data = refdat , aes(y = reorder(labelNLn, -A98), x = A50))+
   geom_point(size = 1)+
   geom_errorbar(aes(xmin = A10, xmax = A90), size = 1) +
+  geom_errorbar(aes(xmin = A2, xmax = A98), size = 0.5, lty = 2) +
   xlab("Leeftijd (maanden)")+
   ylab("")+
   facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
@@ -127,9 +132,10 @@ vwtabDH <-
   full_join(refdat, by = "nr")
 
 
-ggplot(data = vwtabDH , aes(y = labelNLn, x = A50))+
+ggplot(data = vwtabDH ,aes(y = reorder(labelNLn, -A98), x = A50))+
   geom_point( size = 1)+
   geom_errorbar(aes(y = labelNLn, xmin = A10, xmax = A90), size = 1) +
+  geom_errorbar(aes(xmin = A2, xmax = A98), size = 0.5, lty = 2) +
   geom_point(aes(y = labelNLn,  x= mndm), color = "#0072B2", alpha = 0.25, pch = 3)+
   geom_errorbar(aes(y = labelNLn, xmin = mnd1, xmax = mnd2), color = "#0072B2", width = 0.5, size = 1)+
   geom_text(aes(y = labelNLn,  x= mndm, label = DHr), nudge_y = 0.5, size = 3,color = 1, check_overlap = T)+
@@ -142,20 +148,24 @@ ggplot(data = vwtabDH , aes(y = labelNLn, x = A50))+
 
 
 ggplot()+
-  geom_point(data = refdat , aes(y = labelNLn, x = A50), size = 1)+
+  geom_point(data = refdat , aes(y = reorder(labelNLn, -A98), x = A50), size = 1)+
   geom_errorbar(data= refdat, aes(y = labelNLn, xmin = A10, xmax = A90), size = 1) +
+    geom_errorbar(data = refdat ,aes(y = labelNLn,xmin = A2, xmax = A98), size = 0.5, lty = 2) +
+
    geom_point(data=vwtabDH, aes(y = labelNLn,  x= mndm), color = "#009E73", alpha = 0.25, pch = 3)+
   geom_errorbar(data=vwtabDH, aes(y = labelNLn,xmin = mnd1, xmax = mnd2), color = "#009E73", width = 0.5, size = 1)+
   geom_text(data=vwtabDH, aes(y = labelNLn,  x= mndm, label = SW), nudge_y = 0.5, size = 3, color = 1, check_overlap = T)+
   xlab("Leeftijd (maanden)")+
   ylab("")+  
   facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
-  ggtitle("Scheslinger-Wash percentages")+
+  ggtitle("Schlesinger-Was percentages")+
   theme(legend.position = "top", text = element_text(size = 14) )
 
 ggplot()+
-  geom_point(data = refdat , aes(y = labelNLn, x = A50), size = 1)+
+  geom_point(data = refdat , aes(y = reorder(labelNLn, -A98), x = A50), size = 1)+
   geom_errorbar(data= refdat, aes(y = labelNLn, xmin = A10, xmax = A90), size = 1) +
+    geom_errorbar(data = refdat ,aes(y = labelNLn,xmin = A2, xmax = A98), size = 0.5, lty = 2) +
+
    geom_point(data=vwtabDH, aes(y = labelNLn,  x= mndm), color = "#CC79A7", alpha = 0.25, pch = 3)+
   geom_errorbar(data=vwtabDH, aes(y = labelNLn,xmin = mnd1, xmax = mnd2), color = "#CC79A7", width = 0.5, size = 1)+
   geom_text(data=vwtabDH, aes(y = labelNLn,  x= mndm, label = SMOCK), nudge_y = 0.5, size = 3, color = 1,check_overlap = T)+
@@ -169,3 +179,105 @@ ggplot()+
 
 
 ```
+
+
+### Update Schlesinger-Was
+
+```{r, fig.width=16, fig.height=20}
+sw <- read.xlsx("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - VWC/Artikel VWC TJGZ/Overzicht proefschrift.xlsx") |>
+  rename(nr = Kenmerk)
+
+swv <-left_join(refdat, sw, by = "nr") |>
+  mutate(P10_m = ifelse(Leeftijd.in.wk.of.mnd == "wk", as.numeric(P10_m) * 7 / 365.25 * 12, as.numeric(P10_m)),
+         P10_o = ifelse(Leeftijd.in.wk.of.mnd == "wk", as.numeric(P10_o) * 7 / 365.25 * 12, as.numeric(P10_o)),
+         P50_m = ifelse(Leeftijd.in.wk.of.mnd == "wk", as.numeric(P50_m) * 7 / 365.25 * 12, as.numeric(P50_m)),
+         P50_o = ifelse(Leeftijd.in.wk.of.mnd == "wk", as.numeric(P50_o) * 7 / 365.25 * 12, as.numeric(P50_o)),
+         P90_m = ifelse(Leeftijd.in.wk.of.mnd == "wk", as.numeric(P90_m) * 7 / 365.25 * 12, as.numeric(P90_m)),
+         P90_o = ifelse(Leeftijd.in.wk.of.mnd == "wk", as.numeric(P90_o) * 7 / 365.25 * 12, as.numeric(P90_o)),
+         match = ifelse(`Status.1:.Exact.overeen.2:.Ongeveer.9:.komt.niet.voor` == 1, "exact", NA),
+         match = ifelse(`Status.1:.Exact.overeen.2:.Ongeveer.9:.komt.niet.voor` == 2, "bijna", match)
+         )
+
+
+
+ggplot()+
+  geom_point(data = refdat , aes(y = labelNLn, x = A50), size = 1)+
+  geom_errorbar(data= refdat, aes(y = labelNLn, xmin = A10, xmax = A90), size = 1) +
+     geom_errorbar(data = refdat ,aes(y = labelNLn,xmin = A2, xmax = A98), size = 0.5, lty = 2) +
+  geom_point(data=swv, aes(y = labelNLn,  x= P50_o, color = match), alpha = 0.25, pch = 3)+
+  geom_errorbar(data=swv, aes(y = labelNLn, xmin = P10_o, xmax = P90_o, color = match), width = 0.5, size = 1, alpha = 0.7)+
+  xlab("Leeftijd (maanden)")+
+  ylab("")+  
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  ggtitle("Schlesinger-Was percentages (observed)")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+ggplot()+
+  geom_point(data = refdat , aes(y = labelNLn, x = A50), size = 1)+
+  geom_errorbar(data= refdat, aes(y = labelNLn, xmin = A10, xmax = A90), size = 1) +
+      geom_errorbar(data = refdat ,aes(y = labelNLn,xmin = A2, xmax = A98), size = 0.5, lty = 2) +
+ geom_point(data=swv, aes(y = labelNLn,  x= P50_m, color = match), alpha = 0.25, pch = 3)+
+  geom_errorbar(data=swv, aes(y = labelNLn, xmin = P10_m, xmax = P90_m, color = match), width = 0.5, size = 1, alpha = 0.7)+
+  xlab("Leeftijd (maanden)")+
+  ylab("")+  
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  ggtitle("Schlesinger-Was percentages (mededeling)")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+```
+
+## Validatie met VWO leeftijd (Figuur paper)
+
+```{r}
+refdat <- 
+refdat |> mutate(
+    cont1 = ifelse(nr %in% 52:54, 0, NA),
+    cont2 = ifelse(nr %in% 52:54, 12, NA),
+    cont1 = ifelse(nr == 55, 1, cont1),
+    cont2 = ifelse(nr == 55, 3, cont2),
+    A2 = ifelse(nr %in% 52:54, 0, A2),
+    A98 = ifelse(nr %in% 52:54, 12, A98),
+    A10 = ifelse(nr %in% 52:54, NA, A10),
+    A50 = ifelse(nr %in% 52:54, NA, A50), #to not plot it but have it in the plot
+    A90 = ifelse(nr %in% 52:54, NA, A90),
+    domein = factor(domein, levels = c("Fijne motoriek", "Communicatie", "Grove motoriek")))
+
+
+fig3 <- ggplot(data = refdat |> filter(sideA ==1 | sideB == 1)  , aes(y = reorder(labelNLn, -A2), x = A50))+
+  geom_point(size = 1)+
+  geom_errorbar(aes(xmin = A10, xmax = A90), size = 1) +
+  geom_errorbar(aes(xmin = A2, xmax = A98), size = 0.5, lty = 2) +
+  #geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
+  geom_point(aes(y = reorder(labelNLn, -A98), x = month), color = "purple")+
+  xlab("Leeftijd (maanden)")+
+  ylab("")+
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+#jpeg(filename = "results/Figuur3.jpg", width = 1000, height = 850)
+#fig3
+
+#dev.off()
+
+```
+
+## Overzicht afwijkende kenmerken VWC tov VW-Schema
+```{r}
+#kenmerken met de VWO leeftijd < P90
+refdat |>
+  filter(A90 > month) |>
+  select(labelNL, month ,A90, domein) |>
+  kable(caption = "Kenmerken met de P90 leeftijd NA de VWschema leeftijd")|>
+  kableExtra::kable_styling()
+
+
+#kenmerken met de VWO leeftijd > P98
+refdat |>
+  filter(A98 < month) |>
+  select(labelNL,month,A98, domein) |>
+  kable(caption = "Kenmerken met de P98 VOOR de VWschema leeftijd.")|>
+  kableExtra::kable_styling()
+
+
+```
+
