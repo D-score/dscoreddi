@@ -3,14 +3,28 @@ library(dplyr)
 itembank <- dscore::builtin_itembank %>% filter(key == "dutch" | key == "gsed2406" & instrument == "ddi") %>%
   bind_rows(
     data.frame(item = "ddicmm032", tau = 25.25, instrument = "ddi", key = "dutch"), #lineare interpolatie 031[tau = 14.5]-033[tau = 36]
-    data.frame(item = "ddicmm038", tau = 52, instrument = "ddi", key = "dutch"), #lineare interpolatie 037[tau=50.1]-039[tau=53.2]
+    data.frame(item = "ddicmm038", tau = 46.2, instrument = "ddi", key = "dutch"), #lineare interpolatie 037[tau=50.1]-039[tau=53.2] << dit lijkt niet te kloppen < vergelijkbaar met ddifmm011 46 en ddifmm012 46.5
     data.frame(item = "ddifmd028", tau = 72, instrument = "ddi", key = "dutch"),
     data.frame(item = "ddicmm051", tau = 74, instrument = "ddi", key = "dutch"),
     data.frame(item = "ddigmd075", tau = 72, instrument = "ddi", key = "dutch"),
 
   ) %>%
   mutate(item = ifelse(item == "ddicmd136", "ddicmm035", item),
-         item = ifelse(item == "ddicmd148", "ddicmm040", item))
+         item = ifelse(item == "ddicmd148", "ddicmm040", item),
+         tau = ifelse(item == "ddicmm040" & key == "dutch", 50.1, tau), #obv fmm014 (gaat op onderzoek uit) 46.9 en dat hij voor zegt 3 woorden met begrip moet liggen cmm039 53.2 <<note circular; fmm014 ook te laag. moet ook rond 50 uitkomen.
+         ,
+         tau = ifelse(item == "ddicmm040" & key == "gsed2406", 45.4, tau), # >> fmm014 40.32 cmm 039 50.46
+         ## wijzigingen ahv validatie DH data door Paul Verkerk (10-03-2025)
+         tau = ifelse(item == "ddifmm014" & key == "dutch",49, tau), #increase from 46.9: closer to kenmerk 40
+         tau = ifelse(item == "ddicmm046" & key == "dutch",64, tau), #increase from 61.8: closer to kenmerk 21
+         tau = ifelse(item == "ddicmm045" & key == "dutch",65, tau), #increase from 63.3: closer to kenmerk 21
+         tau = ifelse(item == "ddicmd049" & key == "dutch",73, tau),#increase from 66.7:  closer to kenmer 28 and 51
+         tau = ifelse(item == "ddigmd069" & key == "dutch",53, tau),#decrease from 56: closer to kenmerk 39
+         tau = ifelse(item == "ddigmm073" & key == "dutch",69, tau)#increase from 67.1 closer to kenmerk 27
+
+
+         )
+
 
 ##note voor overgang naar gsed itembank missen we van meer kenmerken de D-score.
 #items in ddi without gsed difficulty:
@@ -47,8 +61,8 @@ data.frame(item = "ddigmd071", tau = 61.28,label = "Kicks ball", instrument = "d
 data.frame(item = "ddigmd146", tau = 48.15,label = "Drinks from cup (M; can ask parents)", instrument = "ddi", key = "gsed2406", domain = "gm", model = "d", number  = "146"),
 # similar item: gs1lgc016[15.25] Does your child make sounds other than crying?
 data.frame(item = "ddicmm032", tau = 15.25 ,label = "Makes varying sounds", instrument = "ddi", key = "gsed2406", domain = "cm", model = "m", number  = "032"),
-# between ddicmm037[49.32]-ddicmm039[50.46], so 49.32 + ((50.46-49.32)/2)
-data.frame(item = "ddicmm038", tau = 49.89,label = "Understands daily used sentences", instrument = "ddi", key = "gsed2406", domain = "cm", model = "m", number  = "038"),
+# between ddicmm037[49.32]-ddicmm039[50.46], so 49.32 + ((50.46-49.32)/2) << WRONG adjust to align with fmm012 << tau is about 48
+data.frame(item = "ddicmm038", tau = 48,label = "Understands daily used sentences", instrument = "ddi", key = "gsed2406", domain = "cm", model = "m", number  = "038"),
 # similar item mdtfmd033[78.10] Copies a cross
 data.frame(item = "ddifmd028", tau = 78.10 ,label = "Copies cross", instrument = "ddi", key = "gsed2406", domain = "fm", model = "d", number  = "028"),
 # similar item: mdtlgd032[85.04]Understands the concept of opposites
