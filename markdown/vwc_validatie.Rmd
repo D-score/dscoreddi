@@ -7,7 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-library(dscoreddi)
+#library(dscoreddi)
+devtools::load_all("~/OneDrive - TNO/Documents/GitHub/dscoreddi")
 library(openxlsx)
 library(dplyr)
 library(knitr)
@@ -266,7 +267,7 @@ fig3 <- ggplot(data = refdat |> filter(sideA ==1 | sideB == 1)  , aes(y = reorde
 #kenmerken met de VWO leeftijd < P90
 refdat |>
   filter(A90 > month) |>
-  select(labelNL, month ,A90, domein) |>
+  select(labelNLnr, month ,A90, domein) |>
   kable(caption = "Kenmerken met de P90 leeftijd NA de VWschema leeftijd")|>
   kableExtra::kable_styling()
 
@@ -274,10 +275,38 @@ refdat |>
 #kenmerken met de VWO leeftijd > P98
 refdat |>
   filter(A98 < month) |>
-  select(labelNL,month,A98, domein) |>
+  select(labelNLnr,month,A98, domein) |>
   kable(caption = "Kenmerken met de P98 VOOR de VWschema leeftijd.")|>
   kableExtra::kable_styling()
 
 
+```
+
+
+## Extreme discrepantie
+
+**ddicmm038** en **ddicmm040**
+
+De tau voor ddicmm038 is geinterpoleerd, maar dat is wellicht niet op de goede manier gedaan want deze is veel te hoog geschat. #lineare interpolatie 037[tau=50.1]-039[tau=53.2]
+
+De tau voor ddicmm040 is afgeleid van een ander item dat wel in het model zat onder een andere code en naamgeving: ddicmd148
+
+*Voor deze kenmerken wellicht de tau aanpassen voor VWC. Overleg met Paul.*
+
+Nu zo opgelost: 
+
+**ddicmm038: Begrijpt enkele dagelijks gebruikte zinnen**
+
+Het validatie percentage van dit kenmerk is vergelijkbaar met 11. Doet blokje in/uit doos (D-score: 46) en 12. Speelt geven en nemen (D-score: 46.5). De nieuwe schatting staat daarom nu op D-score: 47. 
+
+**ddicmm040: Begrijpt fatasieopdrachtjes**
+
+Dit kenmerk zou voor "39. Zegt 3 woorden met begrip" moeten liggen (D-score: 53.2) en lijkt in validatie percentage enigszins op "14. Gaat op onderzoek uit" (D-score: 46.9). De update in schatting heb ik nu tussen deze twee kenmerken gezet op D-score 50.1.
+
+
+```{r}
+geenDH <- vwtabDH |> filter(is.na(DH)) |> pull(nr)
+
+vwtabDH |> filter(nr %in% geenDH) |> View()
 ```
 

@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(dscoreddi)
+devtools::load_all("~/OneDrive - TNO/Documents/GitHub/dscoreddi")
 library(ggplot2)
 library(dplyr)
 library(dscore)
@@ -87,7 +87,7 @@ dif <- example$tau + lgd
 df <- data.frame(p = p1, d = dif)
 
 #find D-score for percentile of interest
-ggplot(df, aes(d, p))+
+f1 <- ggplot(df, aes(d, p))+
   geom_line() +
   ggtitle("D-score bij kans op behalen `Stapelt 3 blokjes`")+
   scale_y_continuous(breaks = seq(0,100,10), limits = c(0,100), name = "Kans op behalen")+
@@ -98,10 +98,16 @@ ggplot(df, aes(d, p))+
   geom_segment(y = -10, x = df[df$p==50, "d"], xend = df[df$p==50, "d"], yend = 50, lty = 2)+
   geom_segment(y = 90, x = 0, xend = df[df$p==90, "d"], yend = 90, lty = 2) +
   geom_segment(y = -10, x = df[df$p==90, "d"], xend = df[df$p==90, "d"], yend = 90, lty = 2) +
-  geom_point(x = df[df$p==10, "d"], y = -3, pch = 25, fill = "red", size = 3) +
-  geom_point(x = df[df$p==50, "d"], y = -3, pch = 25, fill = "red", size = 3) +
-  geom_point(x = df[df$p==90, "d"], y = -3, pch = 25, fill = "red", size = 3) 
+  geom_point(x = df[df$p==10, "d"], y = -2.6, pch = 25, fill = "red", size = 3) +
+  geom_point(x = df[df$p==50, "d"], y = -2.6, pch = 25, fill = "red", size = 3) +
+  geom_point(x = df[df$p==90, "d"], y = -2.6, pch = 25, fill = "red", size = 3) 
 
+f1
+
+jpeg(filename = "~/OneDrive - TNO/Documents/GitHub/dscoreddi/results/Figuur1.jpg",width = 1400, height = 1200, res = 300)
+f1
+
+dev.off()
 ```
 
 ### 2. Bepaal de leeftijd bij gemiddelde D-score
@@ -114,7 +120,7 @@ pa <- approx(x = reference$mu, y = reference$agemos, xout = as.vector(df$d))$y *
     12
 df <- data.frame(p = p1, d = dif, a = pa)
   
-ggplot(reference, aes(agemos, mu))+
+f2 <- ggplot(reference, aes(agemos, mu))+
   geom_line()+
   ggtitle("Leeftijd bij gemiddelde D-score")+
   ylab("D-score")+
@@ -149,6 +155,13 @@ ggplot(reference, aes(agemos, mu))+
   geom_point(x = approx(x = reference$mu, y = reference$agemos, xout = df[df$p==50, "d"])$y, y = 3, pch = 25, fill = "red", size = 3) +
   geom_point(x = approx(x = reference$mu, y = reference$agemos, xout = df[df$p==90, "d"])$y, y = 3, pch = 25, fill = "red", size = 3) 
 
+
+f2
+
+jpeg(filename = "~/OneDrive - TNO/Documents/GitHub/dscoreddi/results/Figuur2.jpg",width = 1400, height = 1200, res = 300)
+f2
+
+dev.off()
 ```
   
   
@@ -232,11 +245,13 @@ refdat <- refdataNL |>
          nr = ifelse(nr == 268, 68.3, nr),
          domein = ifelse(nr == 6, "Fijne motoriek", domein),
 
-         labelNLnr = paste(nr, labelNL, sep = ". "),
+         labelNLnr = ifelse(nr %in% c(28,51,75),paste(nr,"\u1D43",". " ,labelNL, sep = "") ,paste(nr, labelNL, sep = ". ")),
+         labelNLnr = ifelse(nr %in% c(32,38),paste(nr,"\u1D9C",". " ,labelNL, sep = "") ,labelNLnr),
+         labelNLnr = ifelse(nr %in% c(17, 18, 19, 23, 24, 25, 27, 43, 44, 47, 48, 71, 72,74, 68.1, 68.2, 68.3),paste(nr,"\u1D47",". " ,labelNL, sep = "") ,labelNLnr),
          #labelNLn = ifelse(nr %in% 52:55, paste(nr, labelNL, sep = ".* "), labelNLn),
          labelNLn = ifelse(month < 10, paste(labelNLnr, month, sep = " |  "),
                            paste(labelNLnr, month, sep = " |") ),
-         labelNLn = ifelse(nr %in% 52:55, paste(labelNLnr, "**", sep = " | "), labelNLn),
+         labelNLn = ifelse(nr %in% 52:55, paste(labelNLnr, " --", sep = " | "), labelNLn),
          labelNLn = forcats::fct_reorder(labelNLn, -nr),
          sideA = ifelse(nr %in% c(1:12, 29:38, 52:67), 1, 0),
          sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2, 68.3), 1, 0),
@@ -268,7 +283,49 @@ ggplot(data = refdat , aes(y = reorder(labelNLn, -A98), x = A50))+
 
 ```
 
+## Validatie met VWO leeftijd (Figuur paper)
 
+```{r,fig.width=16, fig.height=20}
+refdat <- 
+refdat |> mutate(
+    cont1 = ifelse(nr %in% 52:54, 0, NA),
+    cont2 = ifelse(nr %in% 52:54, 12, NA),
+    cont1 = ifelse(nr == 55, 1, cont1),
+    cont2 = ifelse(nr == 55, 3, cont2),
+    A2 = ifelse(nr %in% 52:54, 0, A2),
+    A98 = ifelse(nr %in% 52:54, 12, A98),    
+    A2 = ifelse(nr %in% 55, 1, A2),
+    A98 = ifelse(nr %in% 55, 3, A98),
+    A10 = ifelse(nr %in% c(28,51,75,52:55), NA, A10),
+    A50 = ifelse(nr %in% 52:55, NA, A50), #to not plot it but have it in the plot
+    A50r = A50,#for ordering, befor removing items
+    A50 = ifelse(nr %in% c(28,51,75), NA, A50),
+    A90 = ifelse(nr %in% c(28,51,75,52:55), NA, A90),
+    A2 = ifelse(nr %in% c(28,51,75), NA, A2),
+    A98 = ifelse(nr %in% c(28,51,75), NA, A98),
+    month = ifelse(nr %in% 52:55, NA, month),
+    domein = factor(domein, levels = c("Fijne motoriek", "Communicatie", "Grove motoriek"))) 
+
+
+fig3 <- ggplot(data = refdat |> filter(sideA ==1 | sideB == 1)  , aes(y = reorder(labelNLn, -A50r), x = A50))+
+  geom_point(size = 1.5)+
+  geom_errorbar(aes(xmin = A10, xmax = A90), size = 1) +
+  geom_errorbar(aes(xmin = A2, xmax = A98), size = 0.5, lty = 3) +
+  #geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
+  geom_point(aes(y = reorder(labelNLn, -A50r), x = month), color = "purple")+
+  xlab("Leeftijd (maanden)")+
+  ylab("")+
+  facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
+  theme(legend.position = "top", text = element_text(size = 14) )
+
+fig3 
+
+jpeg(filename = "~/OneDrive - TNO/Documents/GitHub/dscoreddi/results/Figuur3.jpg", width = 5000, height = 5000, res = 300)
+fig3
+
+dev.off()
+
+```
 ## Appendix
 
 ```{r}
@@ -296,10 +353,25 @@ vwtabDH <-
 
 AppendixA <- 
 refdat |>
-  select(labelNL, month, domein, A2, A10, A50, A90, A98)
+  mutate(A50 = ifelse(nr %in% c(52:55), 0, A50))|>
+  arrange(domein, A50)|>
+  mutate(A2 = ifelse(nr %in% c(52,53,54,55), NA, A2),
+         A50 = ifelse(nr %in% c(52,53,54,55), NA, A50),
+         A98 = ifelse(nr %in% c(52,53,54,55), NA, A98)
+         )|>
+  select(labelNLnr, month, domein, A2, A10, A50, A90, A98) |>
+  rename(Ontwikkelingskenmerk = labelNLnr,
+         "Van Wiechen-schema leeftijd in maanden" = month,
+         P2 = A2,
+         P10 = A10,
+         P50 = A50,
+         P90 = A90,
+         P98 = A98)
 
+write.xlsx(AppendixA, "~/OneDrive - TNO/Documents/GitHub/dscoreddi/results/VWC_AppendixA.xlsx")
 #change colnames >> look at stored file
 #store file in excel
+#Note: *Percentielen van deze kenmerken zijn erbij geschat, omdat hier nog geen D-score van bekend is; (M) geeft aan dat dit kenmerk ook op basis van mededeling gescoord mag worden; "rl" geeft aan dat zowel rechts als links bekeken moet worden; -- deze kenmerken worden gedurende het eerste jaar herhaaldelijk afgenomen.
 
 ```
 
