@@ -69,7 +69,7 @@ shinyServer(function(input, output) {
         fm1 <-
             ggplot(pref() %>%
                      filter(domein == "Fijne motoriek" & sideA == 1),  #selecteer milestons met A10 < 15 maanden
-                   aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) + #changed
+                   aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight)) + #changed
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
             scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
@@ -89,7 +89,7 @@ shinyServer(function(input, output) {
           arrange(-nr) %>% pull(bold)
         cm1 <-
             ggplot(pref() %>% filter(domein == "Communicatie"& sideA == 1),#selecteer milestons met A10 < 15 maanden
-                   aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
+                   aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight)) +
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
             scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
@@ -109,7 +109,7 @@ shinyServer(function(input, output) {
 
         gm1 <-
             ggplot(pref() %>% filter(domein == "Grove motoriek" & sideA == 1), #selecteer milestons met A10 < 15 maanden
-                   aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
+                   aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight)) +
             geom_point()+
             geom_errorbar(aes(ymin = A10, ymax = A90))+
             geom_linerange(aes(ymin = cont1, ymax = cont2), lty = 2)+
@@ -141,7 +141,7 @@ shinyServer(function(input, output) {
 
     fm2 <-
         ggplot(pref() %>% filter(domein == "Fijne motoriek"& sideB == 1), #selecteer milestons met A10 < 15 maanden
-               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
+               aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
@@ -156,7 +156,7 @@ shinyServer(function(input, output) {
       arrange(-nr) %>% pull(bold)
     cm2 <-
         ggplot(pref() %>% filter(domein == "Communicatie"& sideB == 1),#selecteer milestons met A10 < 15 maanden
-               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
+               aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
@@ -172,7 +172,7 @@ shinyServer(function(input, output) {
       arrange(-nr) %>% pull(bold)
     gm2 <-
         ggplot(pref() %>% filter(domein == "Grove motoriek" & sideB == 1), #selecteer milestons met A10 < 15 maanden
-               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
+               aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
 
@@ -207,7 +207,7 @@ shinyServer(function(input, output) {
 
       fm_dom <-
         ggplot(pref() %>% filter(domein == "Fijne motoriek"), #selecteer milestons met A10 < 15 maanden
-               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight, label = labelNL)) +
+               aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight, label = labelNL)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
@@ -230,7 +230,7 @@ shinyServer(function(input, output) {
 
       cm_dom <-
         ggplot(pref() %>% filter(domein == "Communicatie"),#selecteer milestons met A10 < 15 maanden
-               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight, label = labelNL)) +
+               aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight, label = labelNL)) +
         geom_point()+
         geom_errorbar(aes(ymin = A10, ymax = A90))+
         scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
@@ -252,7 +252,7 @@ shinyServer(function(input, output) {
 
      gm_dom <-
         ggplot(pref() %>% filter(domein == "Grove motoriek"), #selecteer milestons met A10 < 15 maanden
-               aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight, label = labelNL)) +
+               aes(x = reorder(labelNLn, -A50),  y= A50, group = highlight, color = highlight, label = labelNL)) +
        geom_point()+
        geom_errorbar(aes(ymin = A10, ymax = A90))+
        scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
