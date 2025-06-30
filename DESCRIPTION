@@ -1,6 +1,6 @@
 Package: dscoreddi
 Title: D-score tools for Dutch Development Instrument
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: 
     person(given = "Iris",
            family = "Eekhout",
@@ -15,11 +15,4 @@ RoxygenNote: 7.3.2
 Depends: 
     R (>= 2.10)
 Imports:
-  dplyr,
-  plotly,
-  forcats, 
-  dinstrument,
-  rlang,
-  dmetric,
-  dscore,
-  tidyr
+  dscore

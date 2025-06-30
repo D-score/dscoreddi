@@ -41,6 +41,11 @@ ggplot(dgsedc, aes(a, d))+
   ggtitle("D-score voor leeftijd (ruwe data)")
 
 
+ggplot(dgsedc, aes(a, daz))+
+  geom_point() +
+  ggtitle("DAZ voor leeftijd (ruwe data)")
+
+
 ggplot(dgsedc, aes(a, n))+
   geom_point() +
   ggtitle("Aantal kenmerken in data voor leeftijd (ruwe data)")
@@ -100,6 +105,9 @@ ggplot(dgsed_add_limitc, aes(a, d))+
   geom_point() +
   ggtitle("D-score voor leeftijd (doorscoren met leeftijdslimiet)")
 
+ggplot(dgsed_add_limitc, aes(a, daz))+
+  geom_point() +
+  ggtitle("DAZ voor leeftijd (doorscoren met leeftijdslimiet)")
 
 ggplot(dgsed_add_limitc, aes(a, n))+
   geom_point() +
