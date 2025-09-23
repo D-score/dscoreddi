@@ -1,0 +1,323 @@
+---
+title: "D-score uit VWO voor GGData"
+author: "Iris Eekhout & Laurens van Buren"
+format: 
+  html:
+    self-contained: true
+    toc: true
+    cod-copy: true
+editor: visual
+execute:
+  echo: true
+  eval: true
+  warning: false
+  message: false
+  cache: false
+---
+
+## Setup
+
+Voor het opschonen van de data en berekenen van de D-score hebben we een aantal R-packages nodig. Voor het opschonen van de data gebruiken we `tidyr` en `dplyr`. Voor het berekenen en weergeven van de D-score gebruiken we `dscoreddi`, `dscore` en `ggplot2`. Voor het weergeven van tabellen gebruiken we `knitr`.
+
+De packages over de D-score staan openbaar gepubliceerd op Github. Deze kun je dus vanuit die locaties vrij installeren met behulp van het `remotes` package. Hieronder de R-code waarmee de benodigde packages geinstalleerd en ingeladen worden.
+
+```{r}
+# Load required CRAN packages
+require(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+require(tidyr, quietly = TRUE, warn.conflicts = FALSE)
+require(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
+require(knitr, quietly = TRUE, warn.conflicts = FALSE)
+
+# Load dedicated package for reading GSED data
+if (!requireNamespace("dscoreddi", quietly = TRUE) && interactive()) {
+  answer <- askYesNo(paste("Package", pkg, "needed. Install from GitHub?"))
+  if (answer) remotes::install_github("d-score/dscoreddi")
+}
+if (!requireNamespace("dscore", quietly = TRUE) && interactive()) {
+  answer <- askYesNo(paste("Package dscore needed. Install from GitHub?"))
+  if (answer) remotes::install_github("d-score/dscore")
+}
+
+require(dscoreddi, quietly = TRUE, warn.conflicts = FALSE)
+require(dscore, quietly = TRUE, warn.conflicts = FALSE)
+
+devtools::load_all(".")
+```
+
+## Extractie van data
+
+* Persoonnummer
+* ContactmomentID
+* Leeftijd in dagen
+* Mijlpalen van Wiechen
+
+Leeftijd en mijlpalen per contactmoment
+
+**Oefendata**
+
+* `jgz_background`: Achtergronddata bevat `ID`, `Geboortedatumkind`, `Geslachtkind`, `jaar` en `Gebied`. Een kind kan meerdere jaren in zorg zijn en heeft voor elk van die jaren achtergrondgegevens.
+
+* `jgz_vwo`: Van Wiechen data bevat `ID`, `ContactmomentID`, `Datum`, Van Wiechen items `vW.#`. Een kind kan meerdere contactmomenten hebben per jaar. 
+
+*Koppeling van bestanden*
+
+De achtergronddata en de van Wiechendata kunnen gekoppeld worden op basis van ID, maar ook `jaar` moet erbij betrokken worden. Daarvoor moet eerst het "jaar" bepaald worden voor elk contactmoment.
+
+
+```{r}
+
+#jgz_vwo
+#jaar contactmoment jaar bepalen voor de "Datum" variabele
+jgz_vwo <- 
+  jgz_vwo |> mutate(jaar = as.numeric(format(Datum, "%Y")))
+
+#koppel achtergronddata aan de Van Wiechen-data
+vwd_raw <-
+  left_join(jgz_vwo, jgz_background, by = c("ID", "jaar"))
+``` 
+
+
+## Opschonen van data
+
+**Leeftijd berekenen**
+
+Leeftijd berekenen op basis van Datum en geboortedatum. Voor de D-score hebben we leeftijd in jaren nodig (met decimalen), voor weergeven in plaatjes is het soms handig om de leeftijd ook in maanden te hebben.
+
+```{r}
+#leeftijd berekenen
+vwd_raw <- 
+  vwd_raw |>
+  mutate(leeftijd = as.numeric(Datum - Geboortedatumkind), #in dagen
+         age = leeftijd / 365.25, #in jaren
+         agemos = age * 12 #in maanden
+         )
+```
+
+
+
+
+**Hercoderen**
+
+* ‘-’, ‘+’ en ‘M’ omzetten naar 0 en 1.
+
+```{r}
+vwd <- vwd_raw |>
+  mutate(across(starts_with("vW."),
+                ~case_when(.x == "-" ~ 0,
+                           .x == "+" ~ 1,
+                           .x == "M" ~ 1))
+  )
+
+```
+
+
+* Links en Rechts variabelen combineren
+
+```{r}
+vwd <- vwd |>
+  mutate(vW.2 = ifelse((vW.2L == 1 & vW.2R == 1), 1, 0),
+         vW.3 = ifelse((vW.3L == 1 & vW.3R == 1), 1, 0),
+         vW.6 = ifelse((vW.6L == 1 & vW.6R == 1), 1, 0),
+         vW.9 = ifelse((vW.9L == 1 & vW.9R == 1), 1, 0),
+         vW.10 = ifelse((vW.10L == 1 & vW.10R == 1), 1, 0),
+         vW.11 = ifelse((vW.11L == 1 & vW.11R == 1), 1, 0),
+         vW.13 = ifelse((vW.13L == 1 & vW.13R == 1), 1, 0),
+         vW.15 = ifelse((vW.15L == 1 & vW.15R == 1), 1, 0),
+         vW.52 = ifelse((vW.52L == 1 & vW.52R == 1), 1, 0),
+         vW.53 = ifelse((vW.53L == 1 & vW.53R == 1), 1, 0),
+         vW.59 = ifelse((vW.59L == 1 & vW.59R == 1), 1, 0),
+         vW.71 = ifelse((vW.71L == 1 & vW.71R == 1), 1, 0),
+         vW.75 = ifelse((vW.75L == 1 & vW.75R == 1), 1, 0))
+```
+
+
+* Kenmerken die in BDS in één veld worden gezet, verdelen in meerderen kenmerken op basis van leeftijd.
+
+```{r}
+vwd <- vwd |>
+  mutate( vW.55 = vW.55, #dit is de a eigenlijk
+         vW.55b = vW.55,
+         vW.55c = vW.55,
+         vW.55d = vW.55,
+         vW.68a = vW.68,
+         vW.68b = vW.68,
+         vW.68c = vW.68,
+         vW.68 = NULL) #originele weglaten, anders krijgen we 2 dezelfde variabelen.
+
+vwd <- vwd |>
+  mutate(vW.55b = ifelse(age < 0.5   / 365.25 | age > 42.5  / 365.25, NA, vW.55b),
+         vW.55c = ifelse(age < 42.5  / 365.25 | age > 102.5 / 365.25, NA, vW.55c),
+         vW.55d = ifelse(age < 102.5 / 365.25 | age > 146.5 / 365.25, NA, vW.55d),
+         vW.55 = ifelse(age < 146.5 / 365.25 | age > 1, NA, vW.55),
+         vW.68a = ifelse(age < 0.75 | age >= 1.75, NA, vW.68a),
+         vW.68b = ifelse(age < 1.75 | age >= 2.50, NA, vW.68b),
+         vW.68c = ifelse(age < 2.5  | age >= 3.50, NA, vW.68c))
+
+```
+
+**Itemnamen in D-score format**
+
+* Bekijk tabel met naam-formaten
+
+```{r}
+dscoreddi::itemtableVWO |> kable()
+```
+
+
+* Hernoemen van de kolommen naar `item`
+
+```{r}
+#rename column names to gsed names to compute d-scores
+vwnames <- colnames(vwd)[grepl("^vW.[1-9]", colnames(vwd))]
+
+vwnames <- gsub("^vW.", "v", vwnames)
+vwnames2 <- rename_vwo_gsed(vwnames)
+
+#pas renames toe op data
+colnames(vwd)[grepl("^vW.[1-9]", colnames(vwd))] <- vwnames2
+
+```
+
+
+* *OPTIE:* doorscoren en terugminnen van de item-scores
+
+```{r}
+#| eval: false
+#| echo: true
+# Leeftijdsgrens voor de items in het Van Wiechen toevoegen aan de itemtabel
+## age limit is next cm age
+cm_max <- data.frame(
+  month =   c(1, 2, 3, 6,  9, 12, 15, 18, 24, 30, 36, 42, 48, 55),
+  max_lft = c(2, 3, 6, 9, 12, 15, 18, 24, 30, 36, 42, 48, 55, 78),
+  min_lft = c(0, 1, 2, 3,  6,  9,  12, 15, 18, 24, 30, 36, 42, 48 )
+)
+
+itemtableVWO <- itemtableVWO |> select(item, labelNL, occ, month) |>
+  left_join(cm_max, by = "month") |> select(item, labelNL, occ, month, min_lft, max_lft)
+
+vwd_add_limit <-
+vwd |>
+ pivot_longer(cols = starts_with("ddi"), names_to ="item", values_to = "score") |>
+  left_join(itemtableVWO |> select(item, min_lft, max_lft), by = "item") |>
+  group_by(ID, item) |>
+  mutate(max_age_zero = ifelse(any(score == 0), max(agemos[which(score == 0)]), -Inf),
+         min_age_one = ifelse(any(score == 1), min(agemos[which(score == 1)]), Inf),
+
+         score = ifelse(is.na(score) & agemos < max_age_zero & agemos > min_lft, 0, score),
+         score = ifelse(is.na(score) & agemos > min_age_one & agemos < max_lft, 1, score)
+         ) |>
+  select(-max_age_zero, -min_age_one, -min_lft, -max_lft) |>
+  ungroup() |>
+  pivot_wider(names_from = "item", values_from = "score")
+
+
+```
+
+## Bekijk de data voor vijf random kinderen
+
+```{r}
+set.seed(654645)
+vwd |>
+  select(age, colnames(vwd)[grepl("^ddi", colnames(vwd))]) |>
+  slice_sample(n=5) |>
+  kable()
+
+```
+
+
+## Berekenen van D-score
+
+Keuzes mbt berekening:
+
+* Conversiesleutel (key): internationaal (`gsed`) of Nederlands (`dutch`)
+* Referentiepopulatie: internationaal (`preliminary`) of Nederlands (`dutch`)
+
+De input voor `key` en `populatie` kun je aanpassen.
+Hieronder staat de code toegepast op de originele data, zonder doorplussen en terugminnen. Wanneer je de D-score wilt bepalen op de doorgepluste en teruggeminde data, dan vervang de data input dan voor:`data = vwd_add_limit` 
+
+```{r}
+dscores <- dscore::dscore(
+  data = vwd,
+  items = colnames(vwd)[grepl("^ddi", colnames(vwd))],
+  key = "gsed",
+  population = "dutch"
+)
+
+```
+
+
+* *OPTIE:* Gebruik alleen de D-score wanneer minimal 3 kenmerken bekend zijn.
+
+```{r}
+dscores_m3 <- dscores |> filter(n >= 2)
+
+```
+
+
+**Weergeven van de D-score**
+
+* D-score voor leeftijd
+```{r}
+
+ggplot(dscores, aes(a, d))+
+  geom_point() +
+  ggtitle("D-score voor leeftijd")
+
+```
+
+* D-score gestandaardizeerd naar leeftijd (daz) voor leeftijd
+
+```{r}
+ggplot(dscores, aes(a, daz))+
+  geom_point() +
+  ggtitle("DAZ voor leeftijd (ruwe data)")
+```
+
+* Aantal kenmerken voor leeftijd
+
+```{r}
+
+ggplot(dscores, aes(a, n))+
+  geom_point() +
+  ggtitle("Aantal kenmerken in data voor leeftijd (ruwe data)")
+
+```
+
+
+* Kans op behalen van afgenomen kenmerken oor leeftijd
+
+```{r}
+
+ggplot(dscores, aes(a, p))+
+  geom_point() +
+  ggtitle("Kans op behalen van afgenomen kenmerken voor leeftijd (ruwe data)")
+
+
+```
+
+
+
+## Verdere selectie van kinderen en datapunten
+
+**Over welke kinderen zeg je iets?**
+
+* woonachtig in periode of woonachtig op peildatum
+* voldoende gegevens bekend in groep
+
+
+**Welke gegevens gebruik je?**
+
+* eerst of laatst bekende in periode? 
+* meest positieve of meest negatieve in jaar?
+* alleen waarnemingen na 6 maanden
+
+
+## Bepalen van afkappunt voor risicogroep
+
+Op basis van de afwijking van het gemiddelde in de referentie populatie
+
+Keuze van de grens is (nog) arbitrair:
+
+* Onderste 10% is wellicht een groep waar je op kunt interveniëren
+* Onder de -2 SD is grens voor indicatie van serieuze problemen in de ontwikkeling
+* Of bepalen op basis van populatie sample
