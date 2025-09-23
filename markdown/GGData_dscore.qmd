@@ -41,31 +41,29 @@ if (!requireNamespace("dscore", quietly = TRUE) && interactive()) {
 require(dscoreddi, quietly = TRUE, warn.conflicts = FALSE)
 require(dscore, quietly = TRUE, warn.conflicts = FALSE)
 
-devtools::load_all(".")
+
 ```
 
 ## Extractie van data
 
-* Persoonnummer
-* ContactmomentID
-* Leeftijd in dagen
-* Mijlpalen van Wiechen
+-   Persoonnummer
+-   ContactmomentID
+-   Leeftijd in dagen
+-   Mijlpalen van Wiechen
 
 Leeftijd en mijlpalen per contactmoment
 
 **Oefendata**
 
-* `jgz_background`: Achtergronddata bevat `ID`, `Geboortedatumkind`, `Geslachtkind`, `jaar` en `Gebied`. Een kind kan meerdere jaren in zorg zijn en heeft voor elk van die jaren achtergrondgegevens.
+-   `jgz_background`: Achtergronddata bevat `ID`, `Geboortedatumkind`, `Geslachtkind`, `jaar` en `Gebied`. Een kind kan meerdere jaren in zorg zijn en heeft voor elk van die jaren achtergrondgegevens.
 
-* `jgz_vwo`: Van Wiechen data bevat `ID`, `ContactmomentID`, `Datum`, Van Wiechen items `vW.#`. Een kind kan meerdere contactmomenten hebben per jaar. 
+-   `jgz_vwo`: Van Wiechen data bevat `ID`, `ContactmomentID`, `Datum`, Van Wiechen items `vW.#`. Een kind kan meerdere contactmomenten hebben per jaar.
 
 *Koppeling van bestanden*
 
 De achtergronddata en de van Wiechendata kunnen gekoppeld worden op basis van ID, maar ook `jaar` moet erbij betrokken worden. Daarvoor moet eerst het "jaar" bepaald worden voor elk contactmoment.
 
-
 ```{r}
-
 #jgz_vwo
 #jaar contactmoment jaar bepalen voor de "Datum" variabele
 jgz_vwo <- 
@@ -74,8 +72,7 @@ jgz_vwo <-
 #koppel achtergronddata aan de Van Wiechen-data
 vwd_raw <-
   left_join(jgz_vwo, jgz_background, by = c("ID", "jaar"))
-``` 
-
+```
 
 ## Opschonen van data
 
@@ -93,12 +90,9 @@ vwd_raw <-
          )
 ```
 
-
-
-
 **Hercoderen**
 
-* ‘-’, ‘+’ en ‘M’ omzetten naar 0 en 1.
+-   ‘-’, ‘+’ en ‘M’ omzetten naar 0 en 1.
 
 ```{r}
 vwd <- vwd_raw |>
@@ -110,8 +104,7 @@ vwd <- vwd_raw |>
 
 ```
 
-
-* Links en Rechts variabelen combineren
+-   Links en Rechts variabelen combineren
 
 ```{r}
 vwd <- vwd |>
@@ -130,8 +123,7 @@ vwd <- vwd |>
          vW.75 = ifelse((vW.75L == 1 & vW.75R == 1), 1, 0))
 ```
 
-
-* Kenmerken die in BDS in één veld worden gezet, verdelen in meerderen kenmerken op basis van leeftijd.
+-   Kenmerken die in BDS in één veld worden gezet, verdelen in meerderen kenmerken op basis van leeftijd.
 
 ```{r}
 vwd <- vwd |>
@@ -157,14 +149,13 @@ vwd <- vwd |>
 
 **Itemnamen in D-score format**
 
-* Bekijk tabel met naam-formaten
+-   Bekijk tabel met naam-formaten
 
 ```{r}
 dscoreddi::itemtableVWO |> kable()
 ```
 
-
-* Hernoemen van de kolommen naar `item`
+-   Hernoemen van de kolommen naar `item`
 
 ```{r}
 #rename column names to gsed names to compute d-scores
@@ -178,8 +169,7 @@ colnames(vwd)[grepl("^vW.[1-9]", colnames(vwd))] <- vwnames2
 
 ```
 
-
-* *OPTIE:* doorscoren en terugminnen van de item-scores
+-   *OPTIE:* doorscoren en terugminnen van de item-scores
 
 ```{r}
 #| eval: false
@@ -224,16 +214,14 @@ vwd |>
 
 ```
 
-
 ## Berekenen van D-score
 
 Keuzes mbt berekening:
 
-* Conversiesleutel (key): internationaal (`gsed`) of Nederlands (`dutch`)
-* Referentiepopulatie: internationaal (`preliminary`) of Nederlands (`dutch`)
+-   Conversiesleutel (key): internationaal (`gsed`) of Nederlands (`dutch`)
+-   Referentiepopulatie: internationaal (`preliminary`) of Nederlands (`dutch`)
 
-De input voor `key` en `populatie` kun je aanpassen.
-Hieronder staat de code toegepast op de originele data, zonder doorplussen en terugminnen. Wanneer je de D-score wilt bepalen op de doorgepluste en teruggeminde data, dan vervang de data input dan voor:`data = vwd_add_limit` 
+De input voor `key` en `populatie` kun je aanpassen. Hieronder staat de code toegepast op de originele data, zonder doorplussen en terugminnen. Wanneer je de D-score wilt bepalen op de doorgepluste en teruggeminde data, dan vervang de data input dan voor:`data = vwd_add_limit`
 
 ```{r}
 dscores <- dscore::dscore(
@@ -245,18 +233,17 @@ dscores <- dscore::dscore(
 
 ```
 
-
-* *OPTIE:* Gebruik alleen de D-score wanneer minimal 3 kenmerken bekend zijn.
+-   *OPTIE:* Gebruik alleen de D-score wanneer minimal 3 kenmerken bekend zijn.
 
 ```{r}
 dscores_m3 <- dscores |> filter(n >= 2)
 
 ```
 
-
 **Weergeven van de D-score**
 
-* D-score voor leeftijd
+-   D-score voor leeftijd
+
 ```{r}
 
 ggplot(dscores, aes(a, d))+
@@ -265,7 +252,7 @@ ggplot(dscores, aes(a, d))+
 
 ```
 
-* D-score gestandaardizeerd naar leeftijd (daz) voor leeftijd
+-   D-score gestandaardizeerd naar leeftijd (daz) voor leeftijd
 
 ```{r}
 ggplot(dscores, aes(a, daz))+
@@ -273,7 +260,7 @@ ggplot(dscores, aes(a, daz))+
   ggtitle("DAZ voor leeftijd (ruwe data)")
 ```
 
-* Aantal kenmerken voor leeftijd
+-   Aantal kenmerken voor leeftijd
 
 ```{r}
 
@@ -283,8 +270,7 @@ ggplot(dscores, aes(a, n))+
 
 ```
 
-
-* Kans op behalen van afgenomen kenmerken oor leeftijd
+-   Kans op behalen van afgenomen kenmerken oor leeftijd
 
 ```{r}
 
@@ -295,22 +281,18 @@ ggplot(dscores, aes(a, p))+
 
 ```
 
-
-
 ## Verdere selectie van kinderen en datapunten
 
 **Over welke kinderen zeg je iets?**
 
-* woonachtig in periode of woonachtig op peildatum
-* voldoende gegevens bekend in groep
-
+-   woonachtig in periode of woonachtig op peildatum
+-   voldoende gegevens bekend in groep
 
 **Welke gegevens gebruik je?**
 
-* eerst of laatst bekende in periode? 
-* meest positieve of meest negatieve in jaar?
-* alleen waarnemingen na 6 maanden
-
+-   eerst of laatst bekende in periode?
+-   meest positieve of meest negatieve in jaar?
+-   alleen waarnemingen na 6 maanden
 
 ## Bepalen van afkappunt voor risicogroep
 
@@ -318,6 +300,6 @@ Op basis van de afwijking van het gemiddelde in de referentie populatie
 
 Keuze van de grens is (nog) arbitrair:
 
-* Onderste 10% is wellicht een groep waar je op kunt interveniëren
-* Onder de -2 SD is grens voor indicatie van serieuze problemen in de ontwikkeling
-* Of bepalen op basis van populatie sample
+-   Onderste 10% is wellicht een groep waar je op kunt interveniëren
+-   Onder de -2 SD is grens voor indicatie van serieuze problemen in de ontwikkeling
+-   Of bepalen op basis van populatie sample
