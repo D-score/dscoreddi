@@ -2,7 +2,7 @@
 #' Open GGData voorbeeld HTML
 #'
 #' Opent het voorbeeldbestand in de browser.
-#' @importFrom utiles browseURL
+#' @importFrom utils browseURL
 #' @export
 open_GGData_example <- function() {
   path <- system.file("docs", "GGData_dscore.html", package = "dscoreddi")
