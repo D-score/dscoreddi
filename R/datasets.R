@@ -51,3 +51,21 @@ NULL
 #' @references \url{dscoreddi package}
 "prefdat"
 
+
+
+#' This is data to be included in my package
+#'
+#' @author iris eekhout
+#' @docType data
+#' @references \url{dscoreddi package}
+"jgz_background"
+
+
+
+#' This is data to be included in my package
+#'
+#' @author iris eekhout
+#' @docType data
+#' @references \url{dscoreddi package}
+"jgz_vwo"
+
