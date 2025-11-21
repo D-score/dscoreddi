@@ -13,6 +13,8 @@ itemtableVWO <- read.xlsx("data-raw/data/VWO_itemtable.xlsx")
 #manual entry (7-9-2021): fix translation of English to Dutch labels - copied two items where two different gsed names are known for the same label (ddicmm040, ddicmd148: Understands play order/ Begrijps spelopdrachtjes) & (ddicmm035, ddicmm136: Reacts to verbal request/ reageert op modeling verzoek)
 #manual edits in mijlpalen (labelNL) voor afstemming met NCJ website (24-8-2023)
 
+itemtableVWO <- itemtableVWO |> mutate(labelNL = ifelse(labelNL == "Kan hurken en weer gaan staan zonder steun en zonder hulp van anderen", "Hurken en weer gaan staan zonder steun en hulp", labelNL))
+
 usethis::use_data(itemtableVWO, overwrite = TRUE)
 
 #check matching results by inspecting labels
