@@ -6,9 +6,9 @@ library(ggplot2)
 
 theme_set(theme_light())
 
-agemos <- 11
-nsuggest <- 6
-refperc <- 10
+agemos <- NA
+nsuggest <- 0
+refperc <- NA
 
 continuous_items <- continuous_item55 <- selected_items <- length(0)
 
@@ -59,15 +59,17 @@ cm1 <-
   ggplot(pref %>% filter(domein == "Communicatie"& sideA == 1),#selecteer milestons met A10 < 15 maanden
          aes(x = reorder(labelNLn, -nr),  y= A50, group = highlight, color = highlight)) +
   geom_point(size = 2.2)+
-  geom_errorbar(aes(ymin = A10, ymax = A90), linewidth = 1.2)+
+  geom_errorbar(aes(ymin = A2, ymax = A98), linewidth = 1.2)+
   scale_color_manual(values = c("black" = "black", "#e6550d" = "#e6550d", "grey60" = "grey60"))+ #added
   geom_hline(yintercept = as.numeric(agemos))+
   coord_flip() + xlab("") +
   theme(legend.position = "none", axis.text.y = element_text(face = cm_bold, color = cm_highlight, size = 14), axis.text.x = element_text(size = 14)) +
-  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,18),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))#+
+  scale_y_continuous(name = "", breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, seq(15,51,3)), minor_breaks = c(0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,40,41,43,44,46,47,49,50), limits= c(0,24),position = "right", sec.axis= dup_axis(name = "Leeftijd (maanden)"), expand = c(0,0.1))#+
  # ggtitle("Communicatie")
 
 cm1
+
+vwc::plot_vwc(data = pref %>% filter(domein == "Communicatie"& sideA == 1), domein = "Communicatie", age = 0.5,selected = "ddicmm032")
 
 
 

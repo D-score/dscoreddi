@@ -1,0 +1,44 @@
+---
+title: "open_GGData_example"
+author: "Iris Eekhout"
+format: html
+editor: visual
+execute:
+  echo: true
+  eval: false
+  warning: false
+  message: false
+---
+
+**Download R-package handmatig van GitHub**
+
+> 1.	Ga naar de GitHub-pagina: [https://github.com/D-score/dscoreddi](https://github.com/D-score/dscoreddi)
+> 2.	Klik op Code > Download ZIP
+> 3.	Pak het ZIP-bestand uit op je computer
+> 4.	Installeer het lokaal in R:
+
+```{r}
+
+install.packages("pad/naar/dscoreddi", repos = NULL, type = "source")
+
+```
+
+
+
+**Installeren R-package direct van GitHub**
+
+```{r}
+install.packages("devtools")
+
+devtools::install_github("d-score/dscoreddi")
+
+library(dscoreddi)
+```
+
+
+**Open GGData example**
+
+```{r}
+open_GGData_example()
+```
+
