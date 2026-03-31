@@ -4,6 +4,7 @@
 
 #plot reference data for the van wiechen continue plot
 library(dscoreddi)
+library(dplyr)
 
 dmetric::gsed_model_818_6$transform
 scale <- dmetric::smoccmodel$model$transform[2]
@@ -21,21 +22,20 @@ prefdat <- refdata %>%
     domein = dplyr::recode(domain, "cm" = "Communicatie",
                            "fm" = "Fijne motoriek",
                            "gm" = "Grove motoriek")) %>%
-  #rename(leeftijd = A) %>%
   left_join(itemtableVWO %>% select(item, labelNL, ID.VWO2005, month), by = "item") %>%
   mutate(nr = as.numeric(substr(item, 7, 9)),
-         # nr = ifelse(nr == 136, 35, nr), #dubbel met nr 035? -- 035 zit neit in model; 136 wel - wijzig op voorhand
-         # nr = ifelse(nr == 148, 40, nr), #dubbel met nr 040? -- 040 zit niet in model; 148 wel - wijzig op voorhand
          nr = ifelse(nr == 068, 68.1, nr),
          nr = ifelse(nr == 168, 68.2, nr),
          nr = ifelse(nr == 268, 68.3, nr),
          domein = ifelse(nr == 6, "Fijne motoriek", domein),
 
          labelNLnr = paste(nr, labelNL, sep = ". "),
-         #labelNLn = ifelse(nr %in% 52:55, paste(nr, labelNL, sep = ".* "), labelNLn),
          labelNLn = ifelse(month < 10, paste(labelNLnr, month, sep = " |  "),
                            paste(labelNLnr, month, sep = " |") ),
          labelNLn = ifelse(nr %in% 52:55, paste(labelNLnr, "**", sep = " | "), labelNLn),
+         labelNLn = gsub("\\.1\\.", "a.", labelNLn),
+         labelNLn = gsub("\\.2\\.", "b.", labelNLn),
+         labelNLn = gsub("\\.3\\.", "c.", labelNLn),
          sideA = ifelse(nr %in% c(1:12, 29:38, 52:67), 1, 0),
          sideB = ifelse(nr %in% c(11:28, 37:51, 66:75, 68.1, 68.2, 68.3), 1, 0),
          A10 = ifelse(is.na(A10), 0, A10),
