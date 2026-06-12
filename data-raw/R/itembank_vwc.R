@@ -72,6 +72,18 @@ data.frame(item = "ddigmd075", tau = 83.19 ,label = "Can stand on one leg for at
 ) %>% arrange(tau)
 
 
-itembank_vwc <- itembank
+
+## add itembank for model gsed2510
+model2510 <- readRDS("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510/ddi_74_13/model.Rds")
+
+itembank_gsed2510 <- model2510$itembank |>
+  select(item, tau, label) |>
+  mutate(decompose_itemnames(item),
+         key = "gsed2510") |>
+  select(key, everything())
+
+
+
+itembank_vwc <- bind_rows(itembank, itembank_gsed2510)
 
 usethis::use_data(itembank_vwc, overwrite = TRUE)
