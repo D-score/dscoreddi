@@ -129,7 +129,8 @@ varlist <- list(adm = c("subjid", "agedays", "cohort", "country"),
                 items = items)
 
 names(ddi_fixed)[names(ddi_fixed) %in% varlist$items]
-#remove fixed parameter for ddigmd061
+
+#remove fixed parameter for ddigmd061 >> Because fit for fixed parameter was bad
 ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddigmd061")]
 
 i <- length(varlist$items)

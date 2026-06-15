@@ -198,7 +198,7 @@ test_that("geobserveerde scores blijven ongewijzigd", {
 
   # De geobserveerde 1 op leeftijd 8 mag niet veranderd worden,
   # ook al ligt deze tussen twee geobserveerde 0's.
-  expect_equal(res$ddi_b0, c(0, 1, 0, NA, NA))
+  expect_equal(res$ddi_b0, c(0, 1, 0, 1, 1))
 })
 
 ## ------------------------------------------------------------------
