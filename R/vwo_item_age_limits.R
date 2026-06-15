@@ -15,9 +15,9 @@
 vwo_item_age_limits <- function(item_table = dscoreddi::itemtableVWO) {
 
   contact_schedule <- tibble::tibble(
-    month   = c(1, 2, 3, 6,  9, 12, 15, 18, 24, 30, 36, 42, 48, 55),
+    month   = c(1, 2, 3, 6,  9, 12, 15, 18, 24, 30, 36, 42, 48, 54),
     min_age = c(0, 1, 2, 3,  6,  9, 12, 15, 18, 24, 30, 36, 42, 48),
-    max_age = c(2, 3, 6, 9, 12, 15, 18, 24, 30, 36, 42, 48, 55, 78)
+    max_age = c(2, 3, 6, 9, 12, 15, 18, 24, 30, 36, 42, 48, 54, 78)
   )
 
   required_cols <- c("item", "month")
