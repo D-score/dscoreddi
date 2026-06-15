@@ -11,8 +11,7 @@
 #' @param age Unquoted column name containing age in months.
 #' @param items Tidyselect expression selecting the item columns
 #'   (e.g. `starts_with("ddi")`).
-#' @param id Optional unquoted column name identifying children/subjects.
-#'   If supplied, the function is applied within each subject.
+#' @param id Unquoted column name identifying children/subjects.
 #' @param item_limits A data frame with age limits per item, typically created by
 #'   [vwo_item_age_limits()].
 #'
@@ -22,18 +21,23 @@ propagate_scores <- function(
     data,
     age,
     items,
-    id = NULL,
+    id,
     item_limits = vwo_item_age_limits()
 ) {
 
-  age_name <- rlang::as_name(rlang::ensym(age))
   id_quo   <- rlang::enquo(id)
-
-  out <- data
-
-  if (!rlang::quo_is_null(id_quo)) {
-    out <- dplyr::group_by(out, !!id_quo)
+  if (rlang::quo_is_missing(id_quo) || rlang::quo_is_null(id_quo)) {
+    stop(
+      "`id` is required: scores can only be propagated within a single ",
+      "subject (e.g. a child), never across subjects. Supply the column ",
+      "that identifies each subject via `id`.",
+      call. = FALSE
+    )
   }
+
+  age_name <- rlang::as_name(rlang::ensym(age))
+
+
 
 
   # internal helper
@@ -57,20 +61,21 @@ propagate_scores <- function(
     # Backward propagation of 0: only within lower age boundary
     if (any(score == 0, na.rm = TRUE)) {
       last_age_0 <- max(age[score == 0], na.rm = TRUE)
-      idx_0 <- age < last_age_0 & age > min_age
+      idx_0 <- age < last_age_0 & age > min_age & is.na(score)
       out[idx_0] <- 0
     }
 
     # Forward propagation of 1: only within upper age boundary
     if (any(score == 1, na.rm = TRUE)) {
       first_age_1 <- min(age[score == 1], na.rm = TRUE)
-      idx_1 <- age > first_age_1 & age < max_age
+      idx_1 <- age > first_age_1 & age < max_age & is.na(score)
       out[idx_1] <- 1
     }
 
     out
   }
 
+  out <- data
 
 
   out <- out |>
@@ -83,10 +88,9 @@ propagate_scores <- function(
           item_name  = dplyr::cur_column(),
           item_limits = item_limits
         )
-      )
-    ) |>
-    dplyr::ungroup()
-
+      ),
+      .by = {{ id }}
+    )
   out
 }
 

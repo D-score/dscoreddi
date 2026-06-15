@@ -4,13 +4,7 @@
 \alias{propagate_scores}
 \title{Propogate item scores with age limits}
 \usage{
-propagate_scores(
-  data,
-  age,
-  items,
-  id = NULL,
-  item_limits = vwo_item_age_limits()
-)
+propagate_scores(data, age, items, id, item_limits = vwo_item_age_limits())
 }
 \arguments{
 \item{data}{A data frame containing age, item columns, and optionally an ID column.}
@@ -20,8 +14,7 @@ propagate_scores(
 \item{items}{Tidyselect expression selecting the item columns
 (e.g. \code{starts_with("ddi")}).}
 
-\item{id}{Optional unquoted column name identifying children/subjects.
-If supplied, the function is applied within each subject.}
+\item{id}{Unquoted column name identifying children/subjects.}
 
 \item{item_limits}{A data frame with age limits per item, typically created by
 \code{\link[=vwo_item_age_limits]{vwo_item_age_limits()}}.}
