@@ -264,3 +264,82 @@ test_that("aantal rijen en kolomnamen blijven gelijk", {
   expect_equal(nrow(res), nrow(df))
   expect_equal(names(res), names(df))
 })
+
+
+
+## ------------------------------------------------------------------
+## 8. Geen min()/max() warning als score==0/1 hoort bij een NA leeftijd
+## ------------------------------------------------------------------
+
+test_that("geen warning wanneer score 0/1 voorkomt op een rij met age = NA", {
+  ages <- c(NA, 8, 12, 16)
+
+  df <- data.frame(
+    child_id = "A",
+    age      = ages,
+    ddi_b0   = c(0, NA, NA, NA),  # score 0 op de rij met age = NA
+    ddi_f1   = c(1, NA, NA, NA)   # score 1 op de rij met age = NA
+  )
+
+  expect_no_warning(
+    res <- propagate_scores(
+      df,
+      age   = age,
+      items = c(ddi_b0, ddi_f1),
+      id    = child_id,
+      item_limits = item_limits
+    )
+  )
+
+  # Er is geen enkele bekende leeftijd om vanuit te propageren, dus
+  # alleen de geobserveerde waarden blijven staan.
+  expect_equal(res$ddi_b0, c(0, NA, NA, NA))
+  expect_equal(res$ddi_f1, c(1, NA, NA, NA))
+})
+
+test_that("propagatie werkt nog steeds als er naast een NA-age ook geldige leeftijden zijn", {
+  ages <- c(NA, 4, 8, 12, 16, 20)
+
+  df <- data.frame(
+    child_id = "A",
+    age      = ages,
+    ddi_b0   = c(0, NA, NA, 0, NA, NA)   # extra 0 op rij met age = NA
+  )
+
+  expect_no_warning(
+    res <- propagate_scores(
+      df,
+      age   = age,
+      items = ddi_b0,
+      id    = child_id,
+      item_limits = item_limits
+    )
+  )
+
+  # last_age_0 wordt nu gebaseerd op leeftijd 12 (de NA-rij wordt
+  # genegeerd); 0 propageert terug naar 4 en 8 (min_age = 2 voor ddi_b0)
+  expect_equal(res$ddi_b0, c(0, 0, 0, 0, NA, NA))
+})
+
+
+
+test_that("aantal rijen en kolomnamen blijven gelijk", {
+  ages <- c(4, 8, 12)
+
+  df <- data.frame(
+    child_id = rep(c("A", "B"), each = length(ages)),
+    age      = rep(ages, 2),
+    ddi_b0   = c(NA, NA, 0, NA, NA, NA)
+  )
+
+  res <- propagate_scores(
+    df,
+    age   = age,
+    items = ddi_b0,
+    id    = child_id,
+    item_limits = item_limits
+  )
+
+  expect_equal(nrow(res), nrow(df))
+  expect_equal(names(res), names(df))
+})

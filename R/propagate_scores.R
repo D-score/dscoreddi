@@ -1,4 +1,4 @@
-#' Propogate item scores with age limits
+#' Propagate item scores with age limits
 #'
 #' Apply age limits to propagated item scores in a longitudinal dataset.
 #' For each selected item:
@@ -59,14 +59,16 @@ propagate_scores <- function(
     out <- score
 
     # Backward propagation of 0: only within lower age boundary
-    if (any(score == 0, na.rm = TRUE)) {
+    if (any(score == 0, na.rm = TRUE)&&
+        any(!is.na(age[score == 0 & !is.na(score)]))) {
       last_age_0 <- max(age[score == 0], na.rm = TRUE)
       idx_0 <- age < last_age_0 & age > min_age & is.na(score)
       out[idx_0] <- 0
     }
 
     # Forward propagation of 1: only within upper age boundary
-    if (any(score == 1, na.rm = TRUE)) {
+    if (any(score == 1, na.rm = TRUE)&&
+        any(!is.na(age[score == 1 & !is.na(score)]))) {
       first_age_1 <- min(age[score == 1], na.rm = TRUE)
       idx_1 <- age > first_age_1 & age < max_age & is.na(score)
       out[idx_1] <- 1
