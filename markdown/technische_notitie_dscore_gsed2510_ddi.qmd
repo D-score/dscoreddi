@@ -1,0 +1,421 @@
+---
+title: "Technische notitie: uitbreiding GSED2510 D-score model met DDI/Van Wiechen-items"
+author: "Iris Eekhout"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    self-contained: true
+    code-fold: true
+    code-summary: "Toon/verberg R-code"
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+```{r}
+#| echo: false
+library(dplyr)
+library(tidyr)
+library(dscore)
+library(ddata)
+library(dmetric)
+library(gseddata)
+library(ggplot2)
+theme_set(theme_light())
+```
+
+# Doel van deze technische notitie
+
+Deze technische notitie beschrijft de stappen die zijn gezet om het bestaande **GSED2510 D-score model** uit te breiden met Nederlandse DDI/Van Wiechen-items. Het doel van deze uitbreiding is om itemparameters te schatten voor Van Wiechen/DDI-items op de meest recente GSED2510-metriek, zodat Nederlandse JGZ-data op een consistente manier kunnen worden omgezet naar D-scores.
+
+Deze notitie is bedoeld als technische onderbouwing voor vervolgprojecten waarin de D-score wordt toegepast in de Nederlandse JGZ-praktijk, waaronder:
+
+- individuele ontwikkelingsgerichte monitoring;
+- interpretatie van D-scoretrajecten voor professionals en ouders;
+- ontwikkeling van een Nederlandse normreferentie;
+- populatiemonitoring en dashboarding;
+- privacyvriendelijke analyse via lokale analyse en/of synthetische data.
+
+# Achtergrond en motivatie
+
+De D-score biedt een gemeenschappelijke schaal voor vroege kindontwikkeling. Voor toepassing binnen de Nederlandse JGZ is het noodzakelijk dat het Van Wiechenonderzoek / DDI-instrument gekoppeld is aan de meest recente GSED-calibratie. In eerdere analyses is al gewerkt met een eerdere D-score-calibratie. Voor verdere ontwikkeling van richtlijnen, normreferenties en dashboards is echter een update naar de nieuwste GSED2510-metriek nodig.
+
+Het huidige werk richt zich daarom op het uitbreiden van het GSED2510-model met DDI-items. Daarbij worden items die al een directe relatie hebben met GSED-items gebruikt als vaste ankerparameters. Voor overige DDI-items worden nieuwe itemparameters geschat op basis van beschikbare Nederlandse en aanvullende DDI-data.
+
+# Databronnen
+
+## Brongegevens
+
+Voor deze modeluitbreiding zijn DDI/Van Wiechen-data opgehaald uit het `gseddata`-pakket. De gebruikte data bestaan uit longitudinale itemresponsen van kinderen op verschillende leeftijden.
+
+De analyse maakt gebruik van:
+
+- DDI/Van Wiechen-itemresponsen;
+- leeftijd in dagen (`agedays`);
+- subject-ID (`subjid`);
+- cohortinformatie;
+- landcode;
+- meetmomentinformatie.
+
+## Inclusie van aanvullende DDI-cohorten
+
+In het script is ingesteld dat aanvullende DDI-cohorten uit `gseddata::gsed_lean` worden meegenomen:
+
+```{r}
+include_extra_ddi_cohorts <- TRUE
+```
+
+De ruwe itemdata worden beperkt tot binaire responsen:
+
+`pad$itm <- dplyr::filter(pad$itm, value %in% c(0, 1))`
+
+# Datavoorbewerking
+
+## Long-form dataset
+
+De DDI-itemresponsen worden eerst in long-form opgebouwd door de itemdata te koppelen aan visit-informatie op basis van `subjid` en `agedays`. Hierbij worden de volgende variabelen geselecteerd:
+
+- `cohort`;
+- `country`;
+- `subjid`;
+- `agedays`;
+- `pair`;
+- `ins`;
+- `item`;
+- `response`.
+
+```{r}
+items_ddi <- dscore::get_itemnames(ins = "ddi")
+
+pad <- gseddata::get_data(adm = ".", items = items_ddi, min_cat = 10)
+pad$itm <- dplyr::filter(pad$itm, value %in% c(0, 1))
+
+long <- dplyr::left_join(
+  pad$itm,
+  pad$visit,
+  by = c("subjid", "agedays")
+) |>
+  dplyr::mutate(
+    subjid = as.character(subjid),
+    ins = "DDI",
+    pair = agedays
+  ) |>
+  dplyr::select(
+    cohort,
+    country = ctrycd,
+    subjid,
+    agedays,
+    pair,
+    ins,
+    item,
+    response = value
+  )
+```
+
+## Wide-form dataset
+
+Voor het fitten van het D-score model wordt de dataset omgezet naar wide-form: één rij per kind-meetmoment, met de itemresponsen als kolommen.
+
+```{r}
+dat <- long |>
+  tidyr::pivot_wider(
+    id_cols = c(cohort, country, subjid, agedays, pair, ins),
+    names_from = item,
+    values_from = response
+  ) |>
+  dplyr::arrange(subjid, agedays)
+```
+
+# Koppeling met bestaande GSED2510-itemparameters
+
+## Identificeren van DDI-items die al in GSED voorkomen
+
+Een deel van de DDI-items is direct gekoppeld aan GSED-items. Deze items kunnen worden gebruikt als ankers, omdat daarvoor al itemparameters beschikbaar zijn in het GSED2510-model.
+
+```{r}
+ddi_in_gsed <- dscore::builtin_translate |>
+  dplyr::filter(grepl("^ddi", gsed)) |>
+  dplyr::mutate(tau = get_tau(gsed3))
+ddi_in_gsed
+```
+
+## Inlezen van het bestaande GSED2510-model
+
+Het bestaande GSED2510 Rasch-model wordt ingelezen vanuit een lokaal opgeslagen RDS-bestand.
+
+```{r}
+modelgsed2510 <- readRDS("C:/Users/eekhouti/OneDrive - TNO/Projecten/gsed/Phase 2/202510/281_0_phase_1+2/model.Rds")
+```
+
+
+## Afleiden van vaste itemparameters
+
+De beta-parameters uit het bestaande model worden omgezet naar tau-parameters. Vervolgens worden itemnamen waar nodig vertaald van GSED- naar DDI-namen. De DDI-items die voorkomen in de wide-form dataset worden geselecteerd als vaste parameters.
+
+```{r}
+fixed_gsd <- -modelgsed2510$fit$betapar
+lookup <- setNames(ddi_in_gsed$gsed, ddi_in_gsed$gsed3)
+
+new_names <- ifelse(
+  names(fixed_gsd) %in% names(lookup),
+  lookup[names(fixed_gsd)],
+  names(fixed_gsd)
+)
+
+names(fixed_gsd) <- new_names
+
+ddi_fixed <- fixed_gsd[names(fixed_gsd) %in% names(dat)]
+```
+
+# Itemselectie en kwaliteitscontroles
+
+Voorafgaand aan het fitten zijn verschillende controles uitgevoerd om te bepalen welke DDI-items voldoende informatie bevatten voor modelschatting.
+
+## Selectie van DDI-items
+
+```{r}
+items <- dat |>
+  dplyr::select(dplyr::starts_with("ddi")) |>
+  colnames()
+```
+
+## Controle 1: minimaal aantal geldige responsen
+
+Items met minder dan 10 geldige responsen worden uitgesloten. In de huidige analyse zijn op basis van deze stap geen items verwijderd.
+
+```{r}
+nvalid <- colSums(!is.na(dat[, items]))
+sum(nvalid < 10)
+items[nvalid < 10]
+items <- items[nvalid >= 10]
+```
+
+## Controle 2: minimaal aantal responsen in de minst voorkomende categorie
+
+Items worden alleen behouden wanneer beide antwoordcategorieën voldoende voorkomen. In de huidige analyse zijn op basis van deze stap geen items verwijderd.
+
+```{r}
+keep <- sapply(dat[, items], function(x) min(table(x)) >= 10)
+sum(!keep)
+names(keep[!keep])
+items <- items[keep]
+```
+
+> **Let op:** in het oorspronkelijke script stond `min(table(x)) > 10`. Als de regel strikt aansluit bij “fewer than 10 responses”, dan is `>= 10` conceptueel consistenter. Kies definitief welke grens gehanteerd wordt en rapporteer deze eenduidig.
+
+## Controle 3: voldoende spreiding
+
+Items zonder voldoende spreiding worden uitgesloten. Hiervoor is een standaarddeviatiegrens van 0.01 gebruikt. In de huidige analyse zijn op basis van deze stap geen items verwijderd.
+
+```{r}
+keep <- sapply(dat[, items], function(x) sd(x, na.rm = TRUE) > 0.01)
+sum(!keep)
+names(keep[!keep])
+items <- items[keep]
+```
+
+# Voorbereiding voor modelfit
+
+De uiteindelijke modeldataset bevat de geselecteerde DDI-items en administratieve variabelen.
+
+```{r}
+data <- dat |>
+  dplyr::select(dplyr::all_of(items), subjid, agedays, cohort, country)
+
+varlist <- list(
+  adm = c("subjid", "agedays", "cohort", "country"),
+  items = items
+)
+```
+
+
+# Modelschatting (1)
+
+Het DDI-uitbreidingsmodel wordt gefit met `dmetric::fit_dmodel()`. Hierbij worden beschikbare vaste DDI/GSED-ankerparameters gebruikt om de nieuwe DDI-items op de GSED2510-schaal te plaatsen.
+
+```{r}
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+model <- dmetric::fit_dmodel(
+  data = data,
+  varlist = varlist,
+  name = model_name,
+  b_fixed = ddi_fixed
+)
+```
+
+# Modeldiagnostiek
+
+## Itemfit
+
+Eerst is specifiek gekeken naar items met vaste GSED-parameters en mogelijke misfit.
+
+```{r}
+model$item_fit |>
+  dplyr::filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+```
+
+> Hieruit blijkt dat voor item `ddigmd061` de vastgezette model parameter niet past bij de data. We besluiten dus om dit item vrij te laten schatten in een nieuw model.
+
+
+# Behandeling van vaste parameters
+
+In principe worden DDI-items die direct gekoppeld zijn aan GSED2510 als vaste parameters in het model opgenomen. Tijdens de analyse bleek echter dat de fixed-parameter fit voor item `ddigmd061` niet paste bij de data. Daarom is de vaste parameter voor dit item verwijderd, zodat dit item opnieuw vrij geschat kon worden.
+
+```{r}
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddigmd061")]
+```
+
+Deze beslissing moet in de definitieve rapportage inhoudelijk worden onderbouwd op basis van itemfit, verwachte itemlocatie en/of inhoudelijke plausibiliteit.
+
+# Modelschatting (2)
+
+Het DDI-uitbreidingsmodel wordt gefit met `dmetric::fit_dmodel()`. Hierbij worden beschikbare vaste DDI/GSED-ankerparameters gebruikt om de nieuwe DDI-items op de GSED2510-schaal te plaatsen.
+
+```{r}
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+model <- dmetric::fit_dmodel(
+  data = data,
+  varlist = varlist,
+  name = model_name,
+  b_fixed = ddi_fixed
+)
+```
+
+# Modeldiagnostiek
+
+## Itemfit
+
+Eerst is specifiek gekeken naar items met vaste GSED-parameters en mogelijke misfit.
+
+```{r}
+model$item_fit |>
+  dplyr::filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+```
+
+Na modelschatting is de itemfit geëvalueerd met behulp van infit- en outfitstatistieken.
+
+```{r}
+model$item_fit |>
+  dplyr::filter(outfit > 1.1 | infit > 1.1)
+```
+
+
+
+## Grafische modeldiagnostiek
+
+De modelschatting is aanvullend grafisch geëvalueerd met `dmetric::plot_dmodel()`.
+
+```{r}
+#| eval: false
+#| echo: true
+
+path <- file.path("pad", "naar", model_name)
+dir.create(path, showWarnings = FALSE, recursive = TRUE)
+
+saveRDS(model, file = file.path(path, "model.Rds"), compress = "xz")
+
+r <- dmetric::plot_dmodel(
+  data = data,
+  model = model,
+  path = path,
+  ref_name = "preliminary_standards",
+  maxy = 85,
+  xbreaks = seq(0, 80, 10)
+)
+```
+
+# Opslaan nieuwe calibratie
+
+De item parameters zijn opgeslagen in `data/itembank_vwc` en dus onderdeel van `dscoreddi::itembank_vwc`.
+
+# Vergelijking met eerdere D-score calibratie
+
+Om de impact van de update te beoordelen, zijn DDI/Van Wiechen-itemparameters op basis van de eerdere GSED2406-calibratie vergeleken met de nieuwe GSED2510-calibratie.
+
+```{r}
+library(dscoreddi)
+
+ibcomp <- itembank_vwc |>
+  tidyr::pivot_wider(names_from = "key", values_from = "tau")
+
+cor(ibcomp$gsed2406, ibcomp$gsed2510, use = "pairwise.complete.obs")
+```
+
+Een scatterplot kan worden gebruikt om systematische verschuivingen, afwijkende items of niet-lineaire verschillen tussen calibraties zichtbaar te maken.
+
+```{r}
+ggplot(ibcomp, aes(gsed2406, gsed2510)) +
+  geom_point() +
+  labs(
+    x = "Itemparameter op GSED2406-metriek",
+    y = "Itemparameter op GSED2510-metriek",
+    title = "Vergelijking itemparameters GSED2406 en GSED2510"
+  )
+```
+
+De D-score op basis van het voorgaande model kan vergeleken worden met de D-score op basis van het huidige model. De correlatie tussen de D-score en ook de DAZ is hoog. Als we de absolute D-scores vergelijken in een plot zien we dat het nieuwe model de D-scores hoger inschat. 
+
+```{r}
+dsc_2406 <- dscore(data = data, key = "gsed2406", population = "dutch", xname = "agedays", xunit = "days", itembank = dscoreddi::itembank_vwc)
+dsc_2510 <- dscore(data = data, key = "gsed2510", population = "GSED-NLD", xname = "agedays", xunit = "days", itembank = dscoreddi::itembank_vwc)
+
+cor(dsc_2406$daz, dsc_2510$daz, use = "pairwise.complete.obs")
+cor(dsc_2406$d, dsc_2510$d, use = "pairwise.complete.obs")
+
+dsc_df <- bind_rows(
+  {dsc_2406 |> mutate(key = "gsed2406")},
+  {dsc_2510 |> mutate(key = "gsed2510")}
+)
+
+ggplot(dsc_df, aes(a*12, d, group = key, color = key)) +
+  geom_point() +
+  labs(
+    x = "Leeftijd (maanden)",
+    y = "D-score",
+    title = "Vergelijking D-score GSED2406 en GSED2510"
+  )
+
+```
+
+De standardisatie voor leeftijd (DAZ) is in beide modellen nu op een andere populatie gebasseerd. Voor het GSED2406 model is dit gebaseerd op dezelfde data die hier is gebruik voor deze kalibratie. Voor het GSED2510 model hebben we gebruik gemaakt van de Nederlandse kinderen dat de GSED heeft ingevuld. De vergelijking kan dus niet volledig 1-op-1 gemaakt worden. 
+
+Voor de toekomst zouden we de referentie voor GSED2510 willen maken op basis van alle Nederlandse data die we beschikbaar hebben.
+
+```{r}
+ggplot(dsc_df, aes(a*12, daz, group = key, color = key)) +
+  geom_point() +
+  labs(
+    x = "Leeftijd (maanden)",
+    y = "DAZ",
+    title = "Vergelijking D-score GSED2406 en GSED2510"
+  )
+
+
+```
+
+
+
+# Voorlopige interpretatie
+
+Op basis van de huidige pipeline is het technisch mogelijk om het GSED2510-model uit te breiden met DDI/Van Wiechen-items. Door gebruik te maken van DDI-items die direct gekoppeld zijn aan bestaande GSED-items, kunnen nieuwe itemparameters op de GSED2510-metriek worden geplaatst. De resulterende itemparameters vormen de basis voor het berekenen van D-scores in Nederlandse JGZ-data.
+
+
+# Reproduceerbaarheid
+
+Voor reproduceerbaarheid moeten in de definitieve notitie ten minste de volgende elementen worden vastgelegd:
+
+```{r}
+sessionInfo()
+```
+
+
