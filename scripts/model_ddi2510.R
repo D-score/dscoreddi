@@ -74,11 +74,11 @@ dat <- long |>
   ) |>
   arrange(subjid, agedays)
 
-table(broad$cohort)
+table(dat$cohort)
 
 
 
-#extract gsed items that were orignially ddi items to link via fixed parameters
+#extract gsed items that were originally ddi items to link as fixed parameters
 ddi_in_gsed <- dscore::builtin_translate |> filter(grepl("^ddi", gsed)) |>
   mutate(tau = get_tau(gsed3))
 ddi_in_gsed |> select(gsed, gsed3, tau)
@@ -139,6 +139,15 @@ model_name <- paste("ddi", i, f, sep = "_")
 #final model location:
 path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
 
+modelgsed2510$itembank %>% filter(item %in%  names(lookup))
+anchors <- modelgsed2510$itembank %>% filter(item %in%  c("gl1fmd026", "gl1lgd026")) %>% dplyr::select(tau) %>% unlist
+anchor_names <- ifelse(c("gl1fmd026", "gl1lgd026") %in% names(lookup),
+                    lookup[c("gl1fmd026", "gl1lgd026")],
+                    names(fixed_gsd))
+names(anchors) <- anchor_names
+names(anchors) %in% names(data)
+
+
 model <- dmetric::fit_dmodel(data = data,
                              varlist = varlist,
                              name = model_name,
@@ -162,3 +171,16 @@ r <- dmetric::plot_dmodel(data = data,
 model$item_fit |> filter(outfit > 1.1 | infit > 1.1)
 
 
+## compare with model 2406
+
+library(dscoreddi)
+library(tidyr)
+library(dplyr)
+
+ibcomp <- itembank_vwc |> pivot_wider(names_from = "key", values_from = "tau")
+
+cor(ibcomp$gsed2406, ibcomp$gsed2510, use = "pairwise.complete.obs")
+
+library(ggplot2)
+ggplot(ibcomp, aes(gsed2406, gsed2510))+
+  geom_point()
