@@ -130,14 +130,6 @@ varlist <- list(adm = c("subjid", "agedays", "cohort", "country"),
 
 names(ddi_fixed)[names(ddi_fixed) %in% varlist$items]
 
-#remove fixed parameter for ddigmd061 >> Because fit for fixed parameter was bad
-ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddigmd061")]
-
-i <- length(varlist$items)
-f <- length(ddi_fixed)
-model_name <- paste("ddi", i, f, sep = "_")
-#final model location:
-path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
 
 modelgsed2510$itembank %>% filter(item %in%  names(lookup))
 anchors <- modelgsed2510$itembank %>% filter(item %in%  c("gl1fmd026", "gl1lgd026")) %>% dplyr::select(tau) %>% unlist
@@ -148,14 +140,74 @@ names(anchors) <- anchor_names
 names(anchors) %in% names(data)
 
 
+## model try 1
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+#final model location:
+path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
+
 model <- dmetric::fit_dmodel(data = data,
                              varlist = varlist,
                              name = model_name,
-                             b_fixed = ddi_fixed
+                             b_fixed = ddi_fixed,
+                             anchors = anchors
 )
 
 model$item_fit |> filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
 
+#remove fixed parameter for ddigmd061 >> Because fit for fixed parameter was bad
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddigmd061")]
+
+
+## model try 2
+
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+#final model location:
+path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
+
+model <- dmetric::fit_dmodel(data = data,
+                             varlist = varlist,
+                             name = model_name,
+                             b_fixed = ddi_fixed,
+                             anchors = anchors
+)
+
+model$item_fit |> filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+
+
+#remove fixed parameter for ddifmd010  >> Because fit for fixed parameter was bad
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddifmd010")]
+
+
+## model try 3
+
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+#final model location:
+path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
+
+model <- dmetric::fit_dmodel(data = data,
+                             varlist = varlist,
+                             name = model_name,
+                             b_fixed = ddi_fixed,
+                             anchors = anchors
+)
+
+model$item_fit |> filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+model$item_fit |> filter(outfit > 1.1 | infit > 1.1)
+
+
+## final model
 
 dir.create(path)
 saveRDS(model, file = file.path(path, "model.Rds"), compress = "xz")
@@ -168,8 +220,6 @@ r <- dmetric::plot_dmodel(data = data,
                           xbreaks = seq(0, 80, 10))
 
 
-model$item_fit |> filter(outfit > 1.1 | infit > 1.1)
-
 
 ## compare with model 2406
 
@@ -177,10 +227,46 @@ library(dscoreddi)
 library(tidyr)
 library(dplyr)
 
-ibcomp <- itembank_vwc |> pivot_wider(names_from = "key", values_from = "tau")
+itembank_gsed2510 <- model$itembank |>
+  select(item, tau, label) |>
+  mutate(decompose_itemnames(item),
+         key = "gsed2510") |>
+  select(key, everything())
+
+ibcomp <- itembank_vwc |> filter(key == "gsed2406") |>
+  bind_rows(itembank_gsed2510) |> pivot_wider(names_from = "key", values_from = "tau")
 
 cor(ibcomp$gsed2406, ibcomp$gsed2510, use = "pairwise.complete.obs")
 
 library(ggplot2)
 ggplot(ibcomp, aes(gsed2406, gsed2510))+
   geom_point()
+
+
+dsc_2406 <- dscore(data = data, key = "gsed2406", population = "dutch", xname = "agedays", xunit = "days", itembank = dscoreddi::itembank_vwc)
+dsc_2510 <- dscore(data = data, key = "gsed2510", population = "GSED-NLD", xname = "agedays", xunit = "days", itembank = itembank_gsed2510)
+
+cor(dsc_2406$daz, dsc_2510$daz, use = "pairwise.complete.obs")
+cor(dsc_2406$d, dsc_2510$d, use = "pairwise.complete.obs")
+
+dsc_df <- bind_rows(
+  {dsc_2406 |> mutate(key = "gsed2406")},
+  {dsc_2510 |> mutate(key = "gsed2510")}
+)
+
+ggplot(dsc_df, aes(a*12, d, group = key, color = key)) +
+  geom_point() +
+  labs(
+    x = "Leeftijd (maanden)",
+    y = "D-score",
+    title = "Vergelijking D-score GSED2406 en GSED2510"
+  )
+
+
+ggplot(dsc_df, aes(a*12, daz, group = key, color = key)) +
+  geom_point() +
+  labs(
+    x = "Leeftijd (maanden)",
+    y = "DAZ",
+    title = "Vergelijking D-score GSED2406 en GSED2510"
+  )

@@ -230,6 +230,20 @@ varlist <- list(
 )
 ```
 
+Selecteer anchor items om de schaling af te stemmen met het juiste model. Gebruik hiervoor twee items (willekeurig) die beide gefixed zijn en dus al GSED parameters (beta en tau) hebben.
+
+```{r}
+modelgsed2510$itembank %>% filter(item %in%  names(lookup))
+anchors <- modelgsed2510$itembank %>% filter(item %in%  c("gl1fmd026", "gl1lgd026")) %>% dplyr::select(tau) %>% unlist
+anchor_names <- ifelse(c("gl1fmd026", "gl1lgd026") %in% names(lookup),
+                    lookup[c("gl1fmd026", "gl1lgd026")],
+                    names(fixed_gsd))
+names(anchors) <- anchor_names
+names(anchors) %in% names(data)
+
+
+```
+
 
 # Modelschatting (1)
 
@@ -245,7 +259,8 @@ model <- dmetric::fit_dmodel(
   data = data,
   varlist = varlist,
   name = model_name,
-  b_fixed = ddi_fixed
+  b_fixed = ddi_fixed, 
+  anchors = anchors
 )
 ```
 
@@ -287,7 +302,8 @@ model <- dmetric::fit_dmodel(
   data = data,
   varlist = varlist,
   name = model_name,
-  b_fixed = ddi_fixed
+  b_fixed = ddi_fixed, 
+  anchors = anchors
 )
 ```
 
@@ -302,6 +318,50 @@ model$item_fit |>
   dplyr::filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
 ```
 
+> Hieruit blijkt dat voor item `ddifmd010` de vastgezette model parameter niet past bij de data. We besluiten dus om dit item vrij te laten schatten in een nieuw model.
+
+
+# Behandeling van vaste parameters
+
+In principe worden DDI-items die direct gekoppeld zijn aan GSED2510 als vaste parameters in het model opgenomen. Tijdens de analyse bleek echter dat de fixed-parameter fit voor item `ddigmd061` niet paste bij de data. Daarom is de vaste parameter voor dit item verwijderd, zodat dit item opnieuw vrij geschat kon worden.
+
+```{r}
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddifmd010")]
+```
+
+Deze beslissing moet in de definitieve rapportage inhoudelijk worden onderbouwd op basis van itemfit, verwachte itemlocatie en/of inhoudelijke plausibiliteit.
+
+# Modelschatting (3)
+
+Het DDI-uitbreidingsmodel wordt gefit met `dmetric::fit_dmodel()`. Hierbij worden beschikbare vaste DDI/GSED-ankerparameters gebruikt om de nieuwe DDI-items op de GSED2510-schaal te plaatsen.
+
+```{r}
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+model <- dmetric::fit_dmodel(
+  data = data,
+  varlist = varlist,
+  name = model_name,
+  b_fixed = ddi_fixed, 
+  anchors = anchors
+)
+```
+
+# Modeldiagnostiek
+
+## Itemfit
+
+Eerst is specifiek gekeken naar items met vaste GSED-parameters en mogelijke misfit.
+
+```{r}
+model$item_fit |>
+  dplyr::filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+```
+
+
 Na modelschatting is de itemfit geëvalueerd met behulp van infit- en outfitstatistieken.
 
 ```{r}
@@ -309,6 +369,7 @@ model$item_fit |>
   dplyr::filter(outfit > 1.1 | infit > 1.1)
 ```
 
+> Binnen de marges van 1.2
 
 
 ## Grafische modeldiagnostiek
@@ -344,9 +405,15 @@ Om de impact van de update te beoordelen, zijn DDI/Van Wiechen-itemparameters op
 
 ```{r}
 library(dscoreddi)
+itembank_gsed2510 <- model$itembank |>
+  select(item, tau, label) |>
+  mutate(decompose_itemnames(item),
+         key = "gsed2510") |>
+  select(key, everything())
 
-ibcomp <- itembank_vwc |>
-  tidyr::pivot_wider(names_from = "key", values_from = "tau")
+ibcomp <- itembank_vwc |> filter(key == "gsed2406") |>
+  bind_rows(itembank_gsed2510) |> pivot_wider(names_from = "key", values_from = "tau")
+
 
 cor(ibcomp$gsed2406, ibcomp$gsed2510, use = "pairwise.complete.obs")
 ```
@@ -367,7 +434,7 @@ De D-score op basis van het voorgaande model kan vergeleken worden met de D-scor
 
 ```{r}
 dsc_2406 <- dscore(data = data, key = "gsed2406", population = "dutch", xname = "agedays", xunit = "days", itembank = dscoreddi::itembank_vwc)
-dsc_2510 <- dscore(data = data, key = "gsed2510", population = "GSED-NLD", xname = "agedays", xunit = "days", itembank = dscoreddi::itembank_vwc)
+dsc_2510 <- dscore(data = data, key = "gsed2510", population = "GSED-NLD", xname = "agedays", xunit = "days", itembank = itembank_gsed2510)
 
 cor(dsc_2406$daz, dsc_2510$daz, use = "pairwise.complete.obs")
 cor(dsc_2406$d, dsc_2510$d, use = "pairwise.complete.obs")

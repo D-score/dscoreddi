@@ -74,7 +74,7 @@ data.frame(item = "ddigmd075", tau = 83.19 ,label = "Can stand on one leg for at
 
 
 ## add itembank for model gsed2510
-model2510 <- readRDS("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510/ddi_74_13/model.Rds")
+model2510 <- readRDS("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510/ddi_74_12/model.Rds")
 
 itembank_gsed2510 <- model2510$itembank |>
   select(item, tau, label) |>
