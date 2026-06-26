@@ -296,13 +296,15 @@ refdat |> mutate(
     A98 = ifelse(nr %in% 52:54, 12, A98),    
     A2 = ifelse(nr %in% 55, 1, A2),
     A98 = ifelse(nr %in% 55, 3, A98),
-    A10 = ifelse(nr %in% c(28,51,75,52:55), NA, A10),
+    A10 = ifelse(nr %in% c(52:55), NA, A10),
+    #A10 = ifelse(nr %in% c(28,51,75,52:55), NA, A10),
     A50 = ifelse(nr %in% 52:55, NA, A50), #to not plot it but have it in the plot
     A50r = A50,#for ordering, befor removing items
-    A50 = ifelse(nr %in% c(28,51,75), NA, A50),
-    A90 = ifelse(nr %in% c(28,51,75,52:55), NA, A90),
-    A2 = ifelse(nr %in% c(28,51,75), NA, A2),
-    A98 = ifelse(nr %in% c(28,51,75), NA, A98),
+   # A50 = ifelse(nr %in% c(28,51,75), NA, A50),
+   # A90 = ifelse(nr %in% c(28,51,75,52:55), NA, A90),
+    A90 = ifelse(nr %in% c(52:55), NA, A90),
+  #  A2 = ifelse(nr %in% c(28,51,75), NA, A2),
+  #  A98 = ifelse(nr %in% c(28,51,75), NA, A98),
     month = ifelse(nr %in% 52:55, NA, month),
     domein = factor(domein, levels = c("Fijne motoriek", "Communicatie", "Grove motoriek"))) 
 
@@ -320,7 +322,7 @@ fig3 <- ggplot(data = refdat |> filter(sideA ==1 | sideB == 1)  , aes(y = reorde
 
 fig3 
 
-jpeg(filename = "~/OneDrive - TNO/Documents/GitHub/dscoreddi/results/Figuur3.jpg", width = 5000, height = 5000, res = 300)
+jpeg(filename = "~/OneDrive - TNO/Documents/GitHub/dscoreddi/results/Figuur3_v2.jpg", width = 5000, height = 5000, res = 300)
 fig3
 
 dev.off()

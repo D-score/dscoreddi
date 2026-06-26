@@ -255,10 +255,10 @@ fig3 <- ggplot(data = refdat |> filter(sideA ==1 | sideB == 1)  , aes(y = reorde
   facet_grid(domein ~. ,space = "free", switch = "y", scales = "free")+
   theme(legend.position = "top", text = element_text(size = 14) )
 
-#jpeg(filename = "results/Figuur3.jpg", width = 1000, height = 850)
-#fig3
+jpeg(filename = "results/Figuur3_v2.jpg", width = 1000, height = 850)
+fig3
 
-#dev.off()
+dev.off()
 
 ```
 
