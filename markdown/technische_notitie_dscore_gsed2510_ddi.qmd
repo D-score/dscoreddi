@@ -30,13 +30,7 @@ theme_set(theme_light())
 
 Deze technische notitie beschrijft de stappen die zijn gezet om het bestaande **GSED2510 D-score model** uit te breiden met Nederlandse DDI/Van Wiechen-items. Het doel van deze uitbreiding is om itemparameters te schatten voor Van Wiechen/DDI-items op de meest recente GSED2510-metriek, zodat Nederlandse JGZ-data op een consistente manier kunnen worden omgezet naar D-scores.
 
-Deze notitie is bedoeld als technische onderbouwing voor vervolgprojecten waarin de D-score wordt toegepast in de Nederlandse JGZ-praktijk, waaronder:
-
-- individuele ontwikkelingsgerichte monitoring;
-- interpretatie van D-scoretrajecten voor professionals en ouders;
-- ontwikkeling van een Nederlandse normreferentie;
-- populatiemonitoring en dashboarding;
-- privacyvriendelijke analyse via lokale analyse en/of synthetische data.
+Deze notitie is bedoeld als technische onderbouwing voor vervolgprojecten waarin de D-score wordt toegepast in de Nederlandse JGZ-praktijk.
 
 # Achtergrond en motivatie
 
@@ -135,11 +129,16 @@ dat <- long |>
 Een deel van de DDI-items is direct gekoppeld aan GSED-items. Deze items kunnen worden gebruikt als ankers, omdat daarvoor al itemparameters beschikbaar zijn in het GSED2510-model.
 
 ```{r}
+
 ddi_in_gsed <- dscore::builtin_translate |>
   dplyr::filter(grepl("^ddi", gsed)) |>
   dplyr::mutate(tau = get_tau(gsed3))
-ddi_in_gsed
+ddi_in_gsed |> select(gsed, gsed3, label, tau) |>
+  left_join(dscore::builtin_itemtable, by = c("gsed" = "item"))
+
 ```
+
+
 
 ## Inlezen van het bestaande GSED2510-model
 
@@ -203,7 +202,7 @@ names(keep[!keep])
 items <- items[keep]
 ```
 
-> **Let op:** in het oorspronkelijke script stond `min(table(x)) > 10`. Als de regel strikt aansluit bij “fewer than 10 responses”, dan is `>= 10` conceptueel consistenter. Kies definitief welke grens gehanteerd wordt en rapporteer deze eenduidig.
+
 
 ## Controle 3: voldoende spreiding
 
@@ -230,10 +229,20 @@ varlist <- list(
 )
 ```
 
-Selecteer anchor items om de schaling af te stemmen met het juiste model. Gebruik hiervoor twee items (willekeurig) die beide gefixed zijn en dus al GSED parameters (beta en tau) hebben.
+De volgende argumenten zijn van cruciaal van belang in `fit_dmodel`:
+
+* anchors
+* data_package
+* transform
+
+**anchors**
+
+We kunnen twee anchor items definieren, deze worden dan gebruik om de schaling af te stemmen met het juiste model. Gebruik hiervoor twee items (willekeurig) die beide gefixed zijn en dus al GSED parameters (beta en tau) hebben. *Note: het weglaten van anchors levert een andere oplossing op als we verder niets doen met `data_package` en `transform` - zie ook `scripts/model_ddi2510_anchor_comp.R`*
+
+
 
 ```{r}
-modelgsed2510$itembank %>% filter(item %in%  names(lookup))
+#modelgsed2510$itembank %>% filter(item %in%  names(lookup))
 anchors <- modelgsed2510$itembank %>% filter(item %in%  c("gl1fmd026", "gl1lgd026")) %>% dplyr::select(tau) %>% unlist
 anchor_names <- ifelse(c("gl1fmd026", "gl1lgd026") %in% names(lookup),
                     lookup[c("gl1fmd026", "gl1lgd026")],
@@ -244,6 +253,12 @@ names(anchors) %in% names(data)
 
 ```
 
+
+**transform**
+
+Intercept en slope uit model$transform is beter en cleaner om te doen ipv de anchors. Alleen moet dan `data_package` argument expliciet als "" ingegeven worden, anders worden transform parameters overschreven.
+
+**Conclusie: we geven transfrom = modelgsed2510$transform mee, met data_package = "". Dit zorgt voor een robuuste toepassing, onafhankelijk van items die wel of niet voorkomen in de data.** 
 
 # Modelschatting (1)
 
@@ -260,25 +275,52 @@ model <- dmetric::fit_dmodel(
   varlist = varlist,
   name = model_name,
   b_fixed = ddi_fixed, 
-  anchors = anchors
+  data_package = "",
+  transform = modelgsed2510$transform
 )
 ```
 
 # Modeldiagnostiek
 
-## Itemfit
+## Itemfit van vastgezette items
 
 Eerst is specifiek gekeken naar items met vaste GSED-parameters en mogelijke misfit.
 
+
 ```{r}
 model$item_fit |>
-  dplyr::filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+  dplyr::filter((outfit > 1 | infit > 1) & item %in% names(ddi_fixed))
+
 ```
 
 > Hieruit blijkt dat voor item `ddigmd061` de vastgezette model parameter niet past bij de data. We besluiten dus om dit item vrij te laten schatten in een nieuw model.
 
 
-# Behandeling van vaste parameters
+Vergelijk de fit van de fixed items met de itemfit in het gsed2510 model voor deze items. Idealiter zou dit infit en outfit vergelijkbaar moeten zijn tussen de modellen.
+
+```{r}
+model$item_fit |> select(item, n, outfit, infit) |> filter(item %in% names(ddi_fixed)) |>
+  left_join(ddi_in_gsed, by = c("item"="gsed")) |> select(item:infit, gsed3) |>
+  left_join({modelgsed2510$item_fit |> select(item, n, outfit, infit)}, by= c("gsed3" = "item"))
+
+```
+
+
+
+## Parameter estimates van vaste parameters
+
+Door het vastzetten van de parameters van de DDI-items die direct gekoppeld zijn aan GSED items worden de schattingen van de DDI-item gekoppeld aan het core-model (GSED2510). We checken nog of de tau (d-score) parameter schattingen van de vast gezette items ook daadwerkelijk overeenkomen met de corresponderende items uit het gsed2510 core model:
+
+*Dit is ingegeven in het model en dus meer een controle of de instellingen van het model daadwerkelijk goed doorkomen*
+
+```{r}
+fix_tau <- ddi_in_gsed |> select(gsed, gsed3, tau) |> rename(item = gsed) |> arrange(tau)
+model_tau <- model$itembank |> filter(item %in% ddi_in_gsed$gsed) |> select(item, tau) |> rename(tau_est = tau) |> arrange(tau_est) |> mutate(tau_est = round(tau_est,2))
+fix_tau |> left_join(model_tau, by = "item") 
+
+```
+
+## Losmaken van vaste parameters
 
 In principe worden DDI-items die direct gekoppeld zijn aan GSED2510 als vaste parameters in het model opgenomen. Tijdens de analyse bleek echter dat de fixed-parameter fit voor item `ddigmd061` niet paste bij de data. Daarom is de vaste parameter voor dit item verwijderd, zodat dit item opnieuw vrij geschat kon worden.
 
@@ -286,7 +328,6 @@ In principe worden DDI-items die direct gekoppeld zijn aan GSED2510 als vaste pa
 ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddigmd061")]
 ```
 
-Deze beslissing moet in de definitieve rapportage inhoudelijk worden onderbouwd op basis van itemfit, verwachte itemlocatie en/of inhoudelijke plausibiliteit.
 
 # Modelschatting (2)
 
@@ -303,8 +344,9 @@ model <- dmetric::fit_dmodel(
   varlist = varlist,
   name = model_name,
   b_fixed = ddi_fixed, 
-  anchors = anchors
-)
+  data_package = "",
+  transform = modelgsed2510$transform
+  )
 ```
 
 # Modeldiagnostiek
@@ -321,15 +363,15 @@ model$item_fit |>
 > Hieruit blijkt dat voor item `ddifmd010` de vastgezette model parameter niet past bij de data. We besluiten dus om dit item vrij te laten schatten in een nieuw model.
 
 
-# Behandeling van vaste parameters
+## Behandeling van vaste parameters
 
-In principe worden DDI-items die direct gekoppeld zijn aan GSED2510 als vaste parameters in het model opgenomen. Tijdens de analyse bleek echter dat de fixed-parameter fit voor item `ddigmd061` niet paste bij de data. Daarom is de vaste parameter voor dit item verwijderd, zodat dit item opnieuw vrij geschat kon worden.
+De fixed-parameter fit voor item `ddifmd010` paste niet bij de data. Daarom is de vaste parameter voor dit item verwijderd, zodat dit item opnieuw vrij geschat kon worden.
 
 ```{r}
 ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddifmd010")]
 ```
 
-Deze beslissing moet in de definitieve rapportage inhoudelijk worden onderbouwd op basis van itemfit, verwachte itemlocatie en/of inhoudelijke plausibiliteit.
+
 
 # Modelschatting (3)
 
@@ -346,7 +388,8 @@ model <- dmetric::fit_dmodel(
   varlist = varlist,
   name = model_name,
   b_fixed = ddi_fixed, 
-  anchors = anchors
+  data_package = "",
+  transform = modelgsed2510$transform
 )
 ```
 
@@ -361,20 +404,87 @@ model$item_fit |>
   dplyr::filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
 ```
 
+De fit van de vastgezette parameters is acceptabel. Vervolgens inspecteren we de Item Characteristic Curves van de gefixte parameters om te zien (visueel) of de geobserveerde data aansluit bij de schatting.
 
-Na modelschatting is de itemfit geëvalueerd met behulp van infit- en outfitstatistieken.
+```{r}
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items = names(ddi_fixed))
+icc
+```
+
+We zien voor enkele items verschillen: `ddicmm047`, `ddifmd013`, `ddicmd044`.
+
+* De parameter voor `ddicmm047` lijkt iets te hoog tov de geobserveerde data. In de `ddi` wijkt het label (kenmerk) iets af van de `gsed`, `ddi: Talk spontaneously on daily events (M; can ask parents)` vs `gsed: Talks easily about daily events`. Daarom maken we dit item ook los. 
+* Voor item `ddifmd013` lijkt de parameter schatting iets lager dan de geobserveerde data, terwijl er veel data beschikbaar is; de afstand is bijna 4 D-score punten. Deze koppelen we ook los.
+* Voor item `ddicmd044` lijkt de parameter schatting ook een stuk lager dan de geobserveerde data, dit zien we uit de geobserveerde dat van zowel de SMOCC als de MOM studie (2 data-bronnen). Deze koppelen we ook los.
+
+
+```{r}
+model$item_fit |>
+  dplyr::filter(item %in% c("ddifmd013", "ddicmm047", "ddicmd044"))
+```
+
+```{r}
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed),c("ddifmd013", "ddicmm047", "ddicmd044"))]
+```
+
+
+
+# Modelschatting (4)
+
+Het DDI-uitbreidingsmodel wordt gefit met `dmetric::fit_dmodel()`. 
+
+```{r}
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+model <- dmetric::fit_dmodel(
+  data = data,
+  varlist = varlist,
+  name = model_name,
+  b_fixed = ddi_fixed, 
+  data_package = "",
+  transform = modelgsed2510$transform
+)
+
+```
+
+
+We checken de ICC en de itemfit van alle losgekoppelde items:
+
+```{r}
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items = c("ddigmd061", "ddifmd010", "ddifmd013", "ddicmm047", "ddicmd044"))
+icc
+```
+
+
+
+Na modelschatting is de itemfit geëvalueerd van alle items in de `ddi` met behulp van infit- en outfitstatistieken.
 
 ```{r}
 model$item_fit |>
   dplyr::filter(outfit > 1.1 | infit > 1.1)
 ```
 
-> Binnen de marges van 1.2
+> Alles is binnen de marges van 1.4 (threshold Bayleys)
+
+
+We bekijken ook nog de ICC's van alle items in het eindmodel.
+
+```{r}
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items = varlist$items)
+icc
+```
+
 
 
 ## Grafische modeldiagnostiek
 
-De modelschatting is aanvullend grafisch geëvalueerd met `dmetric::plot_dmodel()`.
+Het eindmodel wordt opgeslagen samen met de ICC plots en D-score plots via `dmetric::plot_dmodel()`.
 
 ```{r}
 #| eval: false
@@ -418,7 +528,7 @@ ibcomp <- itembank_vwc |> filter(key == "gsed2406") |>
 cor(ibcomp$gsed2406, ibcomp$gsed2510, use = "pairwise.complete.obs")
 ```
 
-Een scatterplot kan worden gebruikt om systematische verschuivingen, afwijkende items of niet-lineaire verschillen tussen calibraties zichtbaar te maken.
+Een scatterplot kan worden gebruikt om systematische verschuivingen, afwijkende items of niet-lineaire verschillen tussen calibraties zichtbaar te maken. We verwachten hier wel enkele verschillen tussen de twee modellen, met name voor de lagere D-scores.
 
 ```{r}
 ggplot(ibcomp, aes(gsed2406, gsed2510)) +

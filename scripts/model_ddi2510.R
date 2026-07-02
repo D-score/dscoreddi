@@ -81,7 +81,11 @@ table(dat$cohort)
 #extract gsed items that were originally ddi items to link as fixed parameters
 ddi_in_gsed <- dscore::builtin_translate |> filter(grepl("^ddi", gsed)) |>
   mutate(tau = get_tau(gsed3))
-ddi_in_gsed |> select(gsed, gsed3, tau)
+
+#compare labels between versions:
+ddi_in_gsed |> select(gsed, gsed3, label, tau) |>
+  left_join(dscore::builtin_itemtable, by = c("gsed" = "item"))
+
 
 #get fitted rasch model gsed2510
 modelgsed2510 <- readRDS("C:/Users/eekhouti/OneDrive - TNO/Projecten/gsed/Phase 2/202510/281_0_phase_1+2/model.Rds")
@@ -101,6 +105,7 @@ ddi_fixed <- fixed_gsd[names(fixed_gsd) %in% names(dat)]
 #prepare data for dmodel fit:
 items <- dat |> select(starts_with("ddi")) |> colnames()
 
+#note: data in gseddata is already cleaned - but these steps are common practice so that why we put them here.
 ## remove items with fewer than 10 responses - 0 removed
 nvalid <- colSums(!is.na(dat[, items]))
 sum(nvalid < 10)
@@ -131,6 +136,7 @@ varlist <- list(adm = c("subjid", "agedays", "cohort", "country"),
 names(ddi_fixed)[names(ddi_fixed) %in% varlist$items]
 
 
+#define anchor parameters to scale the logit rasch estimates to the gsed2510 scale
 modelgsed2510$itembank %>% filter(item %in%  names(lookup))
 anchors <- modelgsed2510$itembank %>% filter(item %in%  c("gl1fmd026", "gl1lgd026")) %>% dplyr::select(tau) %>% unlist
 anchor_names <- ifelse(c("gl1fmd026", "gl1lgd026") %in% names(lookup),
@@ -139,6 +145,8 @@ anchor_names <- ifelse(c("gl1fmd026", "gl1lgd026") %in% names(lookup),
 names(anchors) <- anchor_names
 names(anchors) %in% names(data)
 
+#instead of using anchors its more robust to use the scaling (transform) parameters directly - its a linear transformation. For that to work in fit_dmodel we need to set the data_package = "" and transform = modelgsed2510$transform.
+
 
 ## model try 1
 i <- length(varlist$items)
@@ -146,14 +154,13 @@ f <- length(ddi_fixed)
 model_name <- paste("ddi", i, f, sep = "_")
 model_name
 
-#final model location:
-path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
 
 model <- dmetric::fit_dmodel(data = data,
                              varlist = varlist,
                              name = model_name,
                              b_fixed = ddi_fixed,
-                             anchors = anchors
+                             data_package = "",
+                             transform = modelgsed2510$transform
 )
 
 model$item_fit |> filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
@@ -169,14 +176,12 @@ f <- length(ddi_fixed)
 model_name <- paste("ddi", i, f, sep = "_")
 model_name
 
-#final model location:
-path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
-
 model <- dmetric::fit_dmodel(data = data,
                              varlist = varlist,
                              name = model_name,
                              b_fixed = ddi_fixed,
-                             anchors = anchors
+                             data_package = "",
+                             transform = modelgsed2510$transform
 )
 
 model$item_fit |> filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
@@ -193,27 +198,88 @@ f <- length(ddi_fixed)
 model_name <- paste("ddi", i, f, sep = "_")
 model_name
 
-#final model location:
-path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
 
 model <- dmetric::fit_dmodel(data = data,
                              varlist = varlist,
                              name = model_name,
                              b_fixed = ddi_fixed,
-                             anchors = anchors
+                             data_package = "",
+                             transform = modelgsed2510$transform
 )
 
 model$item_fit |> filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+
+#check ICC curves for fixed items to visually inspect if the parameter fits with the observed data
+
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items = names(ddi_fixed))
+icc
+
+
+#remove fixed parameter for ddicmd044; ddifmd013; ddicmm047
+# each have a fitted curved that deviates from the observed data:
+# ddicmd044 appears more difficult in ddi than as was estimated for the corresponding gsed item - data from both ddi sources confirm this.
+# ddicmm047 seems easier in ddi, the label of the items deviates a bit too: ddi: Talk spontaneously on daily events (M; can ask parents) vs gsed: Talks easily about daily events
+# ddifmd013 also appears more difficult in ddi than as estimated in gsed
+
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), c("ddifmd013", "ddicmm047", "ddicmd044"))]
+model$item_fit |>
+  dplyr::filter(item %in% c("ddifmd013", "ddicmm047", "ddicmd044"))
+
+
+## model try 4
+
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+
+model <- dmetric::fit_dmodel(data = data,
+                             varlist = varlist,
+                             name = model_name,
+                             b_fixed = ddi_fixed,
+                             data_package = "",
+                             transform = modelgsed2510$transform
+)
+
+
+
+#check ICC curves for fixed items to visually inspect if the parameter fits with the observed data
+
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items =  c("ddifmd013", "ddicmm047", "ddicmd044"))
+icc
+model$item_fit |>
+  dplyr::filter(item %in% c("ddifmd013", "ddicmm047", "ddicmd044"))
+
+
+
+
+model$item_fit |> filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+
+#check the itemfit of all items:
 model$item_fit |> filter(outfit > 1.1 | infit > 1.1)
 
+#check ICC for all items:
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items = varlist$items)
+icc
 
-## final model
+
+## save final model
+#final model location:
+model_name
+path <- paste("C:/Users/eekhouti/OneDrive - TNO/TNO - CH - D-score/Team/Work/GSED/phase2/202510", model_name, sep = "/")
 
 dir.create(path)
 saveRDS(model, file = file.path(path, "model.Rds"), compress = "xz")
 
+model$data_package <- "gseddata"
+
 r <- dmetric::plot_dmodel(data = data,
                           model = model,
+
                           path = path,
                           ref_name = "preliminary_standards",
                           maxy = 85,
