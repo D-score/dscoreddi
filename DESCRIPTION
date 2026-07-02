@@ -1,6 +1,6 @@
 Package: dscoreddi
 Title: D-score tools for Dutch Development Instrument
-Version: 0.3.0
+Version: 0.3.1
 Authors@R: 
     person(given = "Iris",
            family = "Eekhout",
