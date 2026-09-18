@@ -1,5 +1,5 @@
 ---
-title: "Technische notitie: uitbreiding GSED2510 D-score model met DDI/Van Wiechen-items"
+title: "Technical Note: Extension of the GSED2510 D-score Model with DDI/Van Wiechen Items"
 author: "Iris Eekhout"
 date: today
 format:
@@ -8,7 +8,7 @@ format:
     toc-depth: 3
     self-contained: true
     code-fold: true
-    code-summary: "Toon/verberg R-code"
+    code-summary: "Show/hide R-code"
 execute:
   echo: true
   warning: false

@@ -1,0 +1,666 @@
+---
+title: "Technical Note: Extension of the GSED2510 D-score Model with DDI/Van Wiechen Items"
+author: "Iris Eekhout"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    self-contained: true
+    code-fold: true
+    code-summary: "Show/hide R-code"
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+```{r}
+#| echo: false
+library(dplyr)
+library(tidyr)
+library(dscore)
+library(ddata)
+library(dmetric)
+library(gseddata)
+library(ggplot2)
+library(knitr)
+theme_set(theme_light())
+```
+
+
+***
+
+# Purpose of this Technical Note
+
+This technical note describes the steps taken to extend the existing **GSED2510 D-score model** with Dutch DDI/Van Wiechen items. The purpose of this extension is to estimate item parameters for Van Wiechen/DDI items on the most recent GSED2510 metric, allowing Dutch preventive child healthcare (JGZ) data to be consistently converted into D-scores.
+
+This note serves as technical documentation for future projects in which the D-score will be applied within Dutch preventive child healthcare practice.
+
+***
+
+# Background and Motivation
+
+The D-score provides a common scale for measuring early childhood development. To support its application within Dutch preventive child healthcare, it is necessary to link the Van Wiechen assessment / DDI instrument to the most recent GSED calibration. Previous analyses were based on an earlier D-score calibration. However, further development of guidelines, normative references, and monitoring dashboards requires an update to the latest GSED2510 metric.
+
+The current work therefore focuses on extending the GSED2510 model with DDI items. Items that already have a direct correspondence with GSED items are used as fixed anchor parameters. For the remaining DDI items, new item parameters are estimated using available Dutch and additional DDI data.
+
+***
+
+# Data Sources
+
+## Source Data
+
+For this model extension, DDI/Van Wiechen data were retrieved from the `gseddata` package. The data consist of longitudinal item responses collected from children at different ages.
+
+The analysis uses:
+
+* DDI/Van Wiechen item responses;
+* age in days (`agedays`);
+* subject identifier (`subjid`);
+* cohort information;
+* country code;
+* measurement occasion information.
+
+## Inclusion of Additional DDI Cohorts
+
+The script is configured to include additional DDI cohorts from `gseddata::gsed_lean`:
+
+```{r}
+include_extra_ddi_cohorts <- TRUE
+```
+
+
+The raw item data are restricted to binary responses:
+
+`pad$itm <- dplyr::filter(pad$itm, value %in% c(0, 1))`
+
+***
+
+# Data Preparation
+
+## Long-Format Dataset
+
+The DDI item responses are first assembled in long format by linking item-level data to visit information based on `subjid` and `agedays`. The following variables are retained:
+
+* `cohort`;
+* `country`;
+* `subjid`;
+* `agedays`;
+* `pair`;
+* `ins`;
+* `item`;
+* `response`.
+
+
+```{r}
+items_ddi <- dscore::get_itemnames(ins = "ddi")
+
+pad <- gseddata::get_data(adm = ".", items = items_ddi, min_cat = 10)
+pad$itm <- dplyr::filter(pad$itm, value %in% c(0, 1))
+
+long <- dplyr::left_join(
+  pad$itm,
+  pad$visit,
+  by = c("subjid", "agedays")
+) |>
+  dplyr::mutate(
+    subjid = as.character(subjid),
+    ins = "DDI",
+    pair = agedays
+  ) |>
+  dplyr::select(
+    cohort,
+    country = ctrycd,
+    subjid,
+    agedays,
+    pair,
+    ins,
+    item,
+    response = value
+  )
+```
+
+***
+
+
+## Wide-Format Dataset
+
+For fitting the D-score model, the dataset is transformed into wide format: one row per child-assessment occasion, with item responses represented as columns.
+
+
+```{r}
+dat <- long |>
+  tidyr::pivot_wider(
+    id_cols = c(cohort, country, subjid, agedays, pair, ins),
+    names_from = item,
+    values_from = response
+  ) |>
+  dplyr::arrange(subjid, agedays)
+```
+
+***
+
+# Linking to Existing GSED2510 Item Parameters
+
+## Identifying DDI Items Already Present in GSED
+
+A subset of the DDI items is directly linked to existing GSED items. These items can be used as anchors because item parameters are already available from the GSED2510 model.
+
+
+```{r}
+
+ddi_in_gsed <- dscore::builtin_translate |>
+  dplyr::filter(grepl("^ddi", gsed)) |>
+  dplyr::mutate(tau = get_tau(gsed3))
+ddi_in_gsed |> select(gsed, gsed3, label, tau) |>
+  left_join(dscore::builtin_itemtable, by = c("gsed" = "item")) |> kable()
+
+```
+
+***
+
+## Loading the Existing GSED2510 Model
+
+The existing GSED2510 Rasch model is loaded from a locally stored RDS file.
+
+
+```{r}
+modelgsed2510 <- readRDS("C:/Users/eekhouti/OneDrive - TNO/Projecten/gsed/Phase 2/202510/281_0_phase_1+2/model.Rds")
+```
+
+***
+
+## Deriving Fixed Item Parameters
+
+The beta parameters from the existing model are converted to tau parameters. Item names are translated from GSED to DDI nomenclature when needed. The DDI items present in the wide-format dataset are then selected as fixed parameters.
+
+
+```{r}
+fixed_gsd <- -modelgsed2510$fit$betapar
+lookup <- setNames(ddi_in_gsed$gsed, ddi_in_gsed$gsed3)
+
+new_names <- ifelse(
+  names(fixed_gsd) %in% names(lookup),
+  lookup[names(fixed_gsd)],
+  names(fixed_gsd)
+)
+
+names(fixed_gsd) <- new_names
+
+ddi_fixed <- fixed_gsd[names(fixed_gsd) %in% names(dat)]
+```
+
+***
+
+# Item Selection and Quality Control
+
+Before model fitting, several checks were performed to determine which DDI items contained sufficient information for estimation. *Note that in the loaded data from `gseddata` the quality checks and cleaning was already performed so code is presented here for completeness of process.*
+
+## Selection of DDI Items
+
+```{r}
+items <- dat |>
+  dplyr::select(dplyr::starts_with("ddi")) |>
+  colnames()
+```
+
+
+## Check 1: Minimum Number of Valid Responses
+
+Items with fewer than 10 valid responses are excluded. In the current analysis, no items were removed based on this criterion.
+
+
+```{r}
+nvalid <- colSums(!is.na(dat[, items]))
+sum(nvalid < 10)
+items[nvalid < 10]
+items <- items[nvalid >= 10]
+```
+
+
+## Check 2: Minimum Number of Responses in the Least Frequent Category
+
+Items are retained only when both response categories occur sufficiently often. In the current analysis, no items were removed based on this criterion.
+
+
+```{r}
+keep <- sapply(dat[, items], function(x) min(table(x)) >= 10)
+sum(!keep)
+names(keep[!keep])
+items <- items[keep]
+```
+
+
+
+## Check 3: Sufficient Variability
+
+Items without sufficient variability are excluded. A standard deviation threshold of 0.01 was applied. In the current analysis, no items were removed based on this criterion.
+
+
+```{r}
+keep <- sapply(dat[, items], function(x) sd(x, na.rm = TRUE) > 0.01)
+sum(!keep)
+names(keep[!keep])
+items <- items[keep]
+```
+
+***
+
+# Preparation for Model Fitting
+
+The final model dataset contains the selected DDI items and administrative variables.
+
+
+```{r}
+data <- dat |>
+  dplyr::select(dplyr::all_of(items), subjid, agedays, cohort, country)
+
+varlist <- list(
+  adm = c("subjid", "agedays", "cohort", "country"),
+  items = items
+)
+```
+
+
+The following arguments are critically important in `fit_dmodel`:
+
+* `anchors`
+* `data_package`
+* `transform`
+
+## Anchors
+
+We can define two anchor items that are used to align the scaling of the new model to the existing metric. Two items are selected (arbitrarily) that both have fixed GSED parameters (beta and tau).
+
+
+```{r}
+#modelgsed2510$itembank %>% filter(item %in%  names(lookup))
+anchors <- modelgsed2510$itembank %>% filter(item %in%  c("gl1fmd026", "gl1lgd026")) %>% dplyr::select(tau) %>% unlist
+anchor_names <- ifelse(c("gl1fmd026", "gl1lgd026") %in% names(lookup),
+                    lookup[c("gl1fmd026", "gl1lgd026")],
+                    names(fixed_gsd))
+names(anchors) <- anchor_names
+names(anchors) %in% names(data)
+
+
+```
+
+*Note: omitting anchors yields a different solution if no additional adjustments are made through `data_package` and `transform`; see also `scripts/model_ddi2510_anchor_comp.R`.*
+
+
+
+## Transform
+
+Using the intercept and slope from `model$transform` is a cleaner and preferred solution compared with using anchor items. However, in that case the `data_package` argument must explicitly be specified as `""`; otherwise the transform parameters may be overwritten.
+
+**Conclusion: we supply `transform = modelgsed2510$transform` together with `data_package = ""`. This provides a robust solution that is independent of which anchor items are available in the data.**
+
+***
+
+
+# Model Estimation (1)
+
+The DDI extension model is fitted using `dmetric::fit_dmodel()`. All available fixed DDI/GSED parameters are used to link new DDI items to the GSED2510 model and transform coefficients are used to transform to the GSED2510 scale.
+
+
+```{r}
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+model <- dmetric::fit_dmodel(
+  data = data,
+  varlist = varlist,
+  name = model_name,
+  b_fixed = ddi_fixed, 
+  data_package = "",
+  transform = modelgsed2510$transform
+)
+```
+
+# Model Diagnostics (1)
+
+## Item Fit of Fixed Items
+
+The first step is to evaluate items with fixed GSED parameters for potential misfit.
+
+
+```{r}
+model$item_fit |>
+  dplyr::filter((outfit > 1 | infit > 1) & item %in% names(ddi_fixed))
+
+```
+
+
+> The results indicate that the fixed model parameter for item `ddigmd061` does not fit the observed data. Therefore, we decide to release this item and re-estimate its parameter in a new model.
+
+Compare the fit statistics of the fixed items with the corresponding item fit statistics in the GSED2510 model. Ideally, infit and outfit values should be comparable across models.
+
+
+```{r}
+model$item_fit |> select(item, n, outfit, infit) |> filter(item %in% names(ddi_fixed)) |>
+  left_join(ddi_in_gsed, by = c("item"="gsed")) |> select(item:infit, gsed3) |>
+  left_join({modelgsed2510$item_fit |> select(item, n, outfit, infit)}, by= c("gsed3" = "item"))
+
+```
+
+
+## Parameter Estimates of Fixed Items
+
+By fixing the parameters of DDI items that are directly linked to GSED items, the DDI item estimates become aligned with the core GSED2510 model. We additionally verify that the estimated tau (D-score) parameters of the fixed items correspond exactly to those of the matching items in the GSED2510 core model.
+
+*Because these values are imposed during estimation, this serves primarily as a verification that the model settings have been correctly applied.*
+
+
+```{r}
+fix_tau <- ddi_in_gsed |> select(gsed, gsed3, tau) |> rename(item = gsed) |> arrange(tau)
+model_tau <- model$itembank |> filter(item %in% ddi_in_gsed$gsed) |> select(item, tau) |> rename(tau_est = tau) |> arrange(tau_est) |> mutate(tau_est = round(tau_est,2))
+fix_tau |> left_join(model_tau, by = "item") 
+
+```
+
+
+## Releasing Fixed Parameters
+
+In principle, DDI items that are directly linked to GSED2510 items are included as fixed parameters. However, during the analysis it became apparent that the fixed-parameter specification for item `ddigmd061` was inconsistent with the observed data. Therefore, the fixed parameter for this item was removed and re-estimated freely.
+
+
+```{r}
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddigmd061")]
+```
+
+***
+
+# Model Estimation (2)
+
+The DDI extension model is fitted using `dmetric::fit_dmodel()`. Filtered fixed DDI/GSED parameters are used to link new DDI items to the GSED2510 model and transform coefficients are used to transform to the GSED2510 scale.
+
+
+```{r}
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+model <- dmetric::fit_dmodel(
+  data = data,
+  varlist = varlist,
+  name = model_name,
+  b_fixed = ddi_fixed, 
+  data_package = "",
+  transform = modelgsed2510$transform
+  )
+```
+
+
+# Model Diagnostics (2)
+
+## Item Fit of fixed items
+
+The first step is to evaluate items with fixed GSED parameters for potential misfit.
+
+```{r}
+model$item_fit |>
+  dplyr::filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+```
+
+> The results indicate that the fixed model parameter for item `ddifmd010` does not fit the observed data. Therefore, we decide to release this item and re-estimate its parameter in a new model.
+
+
+
+## Releasing Fixed Parameters
+
+The fixed-parameter specification for item `ddifmd010` did not fit the observed data. Therefore, the fixed parameter for this item was removed to allow free re-estimation.
+
+
+```{r}
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed), "ddifmd010")]
+```
+
+
+***
+
+# Model Estimation (3)
+
+The DDI extension model is fitted using `dmetric::fit_dmodel()`. Filtered fixed DDI/GSED parameters are used to link new DDI items to the GSED2510 model and transform coefficients are used to transform to the GSED2510 scale.
+
+
+```{r}
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+model <- dmetric::fit_dmodel(
+  data = data,
+  varlist = varlist,
+  name = model_name,
+  b_fixed = ddi_fixed, 
+  data_package = "",
+  transform = modelgsed2510$transform
+)
+```
+
+# Model Diagnostics (3)
+
+## Item Fit of fixed items
+
+The first step is to evaluate items with fixed GSED parameters for potential misfit.
+```{r}
+model$item_fit |>
+  dplyr::filter((outfit > 1 | infit > 1) & item %in% names(fixed_gsd))
+```
+
+> The fit of the fixed parameters is considered acceptable. 
+
+
+## ICC of fixed items
+
+Next, we visually inspect the Item Characteristic Curves (ICCs) of the fixed items to evaluate whether the observed data correspond to the model predictions.
+
+```{r}
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items = names(ddi_fixed))
+icc
+```
+
+
+We observed discrepancies for several items: `ddicmm047`, `ddifmd013`, and `ddicmd044`.
+
+* The parameter for `ddicmm047` appears slightly too high relative to the observed data. The DDI item label differs somewhat from the corresponding GSED item (`ddi: Talk spontaneously on daily events (M; can ask parents)` versus `gsed: Talks easily about daily events`). Therefore, this item is also released.
+* For item `ddifmd013`, the parameter estimate appears somewhat lower than suggested by the observed data, despite a substantial amount of available data. The discrepancy approaches 4 D-score points. This item is also released.
+* For item `ddicmd044`, the parameter estimate likewise appears substantially lower than suggested by the observed data. This pattern is observed consistently in both the SMOCC and MOM studies. Therefore, this item is also released.
+
+
+```{r}
+model$item_fit |>
+  dplyr::filter(item %in% c("ddifmd013", "ddicmm047", "ddicmd044"))
+```
+
+```{r}
+ddi_fixed <- ddi_fixed[setdiff(names(ddi_fixed),c("ddifmd013", "ddicmm047", "ddicmd044"))]
+```
+
+***
+
+# Model Estimation (4)
+
+The DDI extension model is fitted using `dmetric::fit_dmodel()`. Filtered fixed DDI/GSED parameters are used to link new DDI items to the GSED2510 model and transform coefficients are used to transform to the GSED2510 scale.
+
+```{r}
+i <- length(varlist$items)
+f <- length(ddi_fixed)
+model_name <- paste("ddi", i, f, sep = "_")
+model_name
+
+model <- dmetric::fit_dmodel(
+  data = data,
+  varlist = varlist,
+  name = model_name,
+  b_fixed = ddi_fixed, 
+  data_package = "",
+  transform = modelgsed2510$transform
+)
+
+```
+
+# Model Diagnostics (4)
+
+## Evaluate changes
+
+We subsequently inspect the ICCs and item fit statistics of all released items.
+
+```{r}
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items = c("ddigmd061", "ddifmd010", "ddifmd013", "ddicmm047", "ddicmd044"))
+icc
+```
+
+
+## Item Fit of all items
+
+After model estimation, item fit was evaluated for all DDI items using infit and outfit statistics.
+
+```{r}
+model$item_fit |>
+  dplyr::filter(outfit > 1.1 | infit > 1.1)
+```
+
+> All values fall within the acceptable threshold of 1.4 (criterion used to link Bayley Scales).
+
+
+## ICC of all items
+
+We also inspect the ICCs of all items in the final model.
+
+```{r}
+model$data_package <- "gseddata" #hack needed to get colors of plots
+icc <- dmetric::plot_p_d_item(data = data, model = model, items = varlist$items)
+icc
+```
+
+
+***
+
+# Store final model
+
+The final model is saved together with ICC plots and D-score plots generated through `dmetric::plot_dmodel()`.
+
+```{r}
+#| eval: false
+#| echo: true
+
+path <- file.path("pad", "naar", model_name)
+dir.create(path, showWarnings = FALSE, recursive = TRUE)
+
+saveRDS(model, file = file.path(path, "model.Rds"), compress = "xz")
+
+r <- dmetric::plot_dmodel(
+  data = data,
+  model = model,
+  path = path,
+  ref_name = "preliminary_standards",
+  maxy = 85,
+  xbreaks = seq(0, 80, 10)
+)
+```
+
+De item parameters zijn opgeslagen in `data/itembank_vwc` en dus onderdeel van `dscoreddi::itembank_vwc`.
+
+
+***
+
+# Comparison with the Previous D-score Calibration
+
+To assess the impact of the update, DDI/Van Wiechen item parameters based on the earlier GSED2406 calibration were compared with those obtained under the new GSED2510 calibration.
+
+
+```{r}
+library(dscoreddi)
+itembank_gsed2510 <- model$itembank |>
+  select(item, tau, label) |>
+  mutate(decompose_itemnames(item),
+         key = "gsed2510") |>
+  select(key, everything())
+
+ibcomp <- itembank_vwc |> filter(key == "gsed2406") |>
+  bind_rows(itembank_gsed2510) |> pivot_wider(names_from = "key", values_from = "tau")
+
+
+cor(ibcomp$gsed2406, ibcomp$gsed2510, use = "pairwise.complete.obs")
+```
+
+A scatter plot can be used to identify systematic shifts, outlying items, or nonlinear differences between calibrations. Some differences between the two models are expected, particularly at the lower end of the D-score scale.
+
+```{r}
+ggplot(ibcomp, aes(gsed2406, gsed2510)) +
+  geom_point() +
+  labs(
+  x = "Item parameter on the GSED2406 metric",
+  y = "Item parameter on the GSED2510 metric",
+  title = "Comparison of GSED2406 and GSED2510 item parameters"
+)
+```
+
+
+The D-scores obtained under the previous model can be compared with those obtained under the current model. Correlations are high for both the D-score and DAZ. When the absolute D-scores are plotted, the new model generally yields higher D-score estimates.
+
+```{r}
+dsc_2406 <- dscore(data = data, key = "gsed2406", population = "dutch", xname = "agedays", xunit = "days", itembank = dscoreddi::itembank_vwc)
+dsc_2510 <- dscore(data = data, key = "gsed2510", population = "GSED-NLD", xname = "agedays", xunit = "days", itembank = itembank_gsed2510)
+
+cor(dsc_2406$daz, dsc_2510$daz, use = "pairwise.complete.obs")
+cor(dsc_2406$d, dsc_2510$d, use = "pairwise.complete.obs")
+
+dsc_df <- bind_rows(
+  {dsc_2406 |> mutate(key = "gsed2406")},
+  {dsc_2510 |> mutate(key = "gsed2510")}
+)
+
+ggplot(dsc_df, aes(a*12, d, group = key, color = key)) +
+  geom_point() +
+  labs(
+  x = "Age (months)",
+  y = "D-score",
+  title = "Comparison of D-scores based on GSED2406 and GSED2510"
+)
+
+```
+
+
+Age standardization (DAZ) is currently based on different reference populations across the two models. For the GSED2406 model, standardization is based on the same data used for calibration. For the GSED2510 model, standardization is based on Dutch children who completed the GSED. As a result, the comparison cannot be interpreted as a fully one-to-one comparison.
+
+In the future, we would like to create a GSED2510 reference based on all Dutch data currently available to us.
+
+
+```{r}
+ggplot(dsc_df, aes(a*12, daz, group = key, color = key)) +
+  geom_point() +
+  labs(
+  x = "Age (months)",
+  y = "DAZ",
+  title = "Comparison of DAZ based on GSED2406 and GSED2510"
+)
+
+
+```
+
+***
+
+
+# Preliminary Interpretation
+
+Based on the current pipeline, it is technically feasible to extend the GSED2510 model with DDI/Van Wiechen items. By using DDI items that are directly linked to existing GSED items, new item parameters can be placed on the GSED2510 metric. The resulting item parameters provide the basis for calculating D-scores in Dutch preventive child healthcare datasets.
+
+***
+
+# Reproducibility
+
+For reproducibility, the final technical note should document at least the following elements:
+
+```{r}
+sessionInfo()
+```
+
+
