@@ -1,6 +1,6 @@
 Package: dscoreddi
 Title: D-score tools for Dutch Development Instrument
-Version: 0.4.0
+Version: 0.4.1
 Authors@R: 
     person(given = "Iris",
            family = "Eekhout",
@@ -15,4 +15,14 @@ RoxygenNote: 7.3.3
 Depends: 
     R (>= 3.5)
 Imports:
-  dscore
+  dscore,
+  dplyr,
+  tidyr,
+  tibble,
+  ggplot2,
+  plotly,
+  shiny,
+  rlang
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
