@@ -10,7 +10,7 @@ run_feedback_app <- function(data = NULL, prepare_args = list(),
                              launch.browser = interactive(), ...) {
   if (is.null(data)) {
     data("jgz_example_feedback", package = "dscoreddi", envir = environment())
-    data <- do.call(prepare_feedback_data, c(list(data = jgz_example_feedback), prepare_args))
+    data <- do.call(prepare_feedback_data, c(list(data = dscoreddi::jgz_example_feedback), prepare_args))
   } else if (!inherits(data, "dfeedback_data")) {
     data <- do.call(prepare_feedback_data, c(list(data = data), prepare_args))
   }

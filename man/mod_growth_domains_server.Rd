@@ -2,10 +2,23 @@
 % Please edit documentation in R/mod_growth_domains.R
 \name{mod_growth_domains_server}
 \alias{mod_growth_domains_server}
-\title{Domain growth-chart module server}
+\title{Server logic for the domain-specific growth module}
 \usage{
 mod_growth_domains_server(id, feedback_data, child_id)
 }
+\arguments{
+\item{id}{Character string. Shiny module identifier.}
+
+\item{feedback_data}{A reactive expression returning the feedback data.}
+
+\item{child_id}{A reactive expression returning the identifier of the
+currently selected child.}
+}
+\value{
+A Shiny module server function. The function is called for its
+side effects and does not return a user-facing value.
+}
 \description{
-Domain growth-chart module server
+Creates the server logic for displaying domain-specific developmental
+trajectories for a selected child.
 }

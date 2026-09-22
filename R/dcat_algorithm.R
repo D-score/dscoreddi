@@ -47,7 +47,7 @@ dcat_algorithm2 <- function (itembank, p_start = 50, p_next = 50, data = NULL, s
                                   itembank = itembank)
   if (dens) {
     qp <- -10:100
-    mu <- dscore::count_mu_gcdg(age)
+    mu <- dscore::count_mu(age, "gcdg")
     dscore_start <- stats::dnorm(qp, mu, 5)
     dscore_qp[[item]] <- qp
     dscore_post[[item]] <- dscore::dscore_posterior(data = df1,

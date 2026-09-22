@@ -43,7 +43,8 @@
 #' the D-score is extremely unlikely to be valid at the given age.
 #'
 #' @seealso [dscore::dscore()] [dscore::builtin_domaintable()]
-#'
+#' @importFrom rlang .data
+#' @importFrom dplyr filter pull
 #' @export
 #' @examples
 #' sample <- dscore::gsample
@@ -100,7 +101,7 @@ ddomain <- function(data,
   ddomain_list <- list()
   for(dom in domain_select){
     dom_items <- domaintable |>
-      filter(.data$domain == dom & .data$weight > vote_weight) |>
+      dplyr::filter(.data$domain == dom & .data$weight > vote_weight) |>
       pull(.data$item) |>
       as.vector()
     dom_items <- intersect(dom_items, items)

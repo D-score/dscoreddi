@@ -9,7 +9,19 @@ mod_growth_domains_ui <- function(id) {
   )
 }
 
-#' Domain growth-chart module server
+#' Server logic for the domain-specific growth module
+#'
+#' Creates the server logic for displaying domain-specific developmental
+#' trajectories for a selected child.
+#'
+#' @param id Character string. Shiny module identifier.
+#' @param feedback_data A reactive expression returning the feedback data.
+#' @param child_id A reactive expression returning the identifier of the
+#'   currently selected child.
+#'
+#' @return A Shiny module server function. The function is called for its
+#'   side effects and does not return a user-facing value.
+#'
 #' @export
 mod_growth_domains_server <- function(id, feedback_data, child_id) {
   shiny::moduleServer(id, function(input, output, session) {

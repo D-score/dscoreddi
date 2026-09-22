@@ -47,7 +47,7 @@ propagate_scores <- function(
       stop("`age` and `score` must have the same length.", call. = FALSE)
     }
 
-    limits <- item_limits |> dplyr::filter(item == !!item_name)
+    limits <- item_limits |> dplyr::filter(.data$item == !!item_name)
 
     if (nrow(limits) == 0) {
       stop("No age limits found for item: ", item_name, call. = FALSE)
