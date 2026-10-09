@@ -1,5 +1,5 @@
 library(shiny)
-#library(dscoreddi)
+library(dscoreddi)
 
 feedback_data <- getOption("dscoreddi.feedback_data")
 if (is.null(feedback_data)) {
@@ -7,7 +7,7 @@ if (is.null(feedback_data)) {
   feedback_data <- prepare_feedback_data(
     jgz_example_feedback,
     id = "ID", visit = "ContactmomentID", age = "age",
-    key = "gsed", population = "dutch", min_items = 1,
+    key = "gsed2510", population = "GSED-NLD", min_items = 1,
     # Add for domain prototype:
     include_domains = TRUE, domain_set = "VWO"
   )
@@ -65,6 +65,13 @@ ui <- shiny::fluidPage(
           mod_growth_item_overlay_ui(
             "growth_item_overlay"
           )
+        ),
+        shiny::tabPanel(
+          "Geïntegreerde terugkoppeling",
+
+          mod_growth_integrated_ui(
+            "growth_integrated"
+          )
         )
       ),
 
@@ -106,6 +113,12 @@ server <- function(input, output, session) {
 
   mod_growth_item_overlay_server(
     id = "growth_item_overlay",
+    feedback_data = feedback_data,
+    child_id = selected_child
+  )
+
+  mod_growth_integrated_server(
+    id = "growth_integrated",
     feedback_data = feedback_data,
     child_id = selected_child
   )

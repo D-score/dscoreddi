@@ -270,11 +270,7 @@ mod_growth_basic_server <- function(
       ref_key <- "gsed2510" #current_reference_key()
       ref_population <- current_reference_population()
 
-      reference <- dscore::builtin_references |>
-        dplyr::filter(
-          .data$key == ref_key,
-          .data$population == ref_population
-        ) |>
+      reference <- dscore::get_reference(population = ref_population ,key = ref_key)  |>
         dplyr::arrange(.data$age)
 
       shiny::validate(

@@ -4,3 +4,71 @@ body { background: #f6f8fb; color: #243447; }
 .tab-content { background: #ffffff; padding: 18px; border-radius: 0 0 12px 12px; }
 .nav-tabs > li > a { font-weight: 600; }
 .child-summary { margin-top: 8px; color: #5f6b76; }
+
+.integrated-item-panel {
+  margin-top: 10px;
+  padding: 16px;
+  min-height: 650px;
+  max-height: 700px;
+  overflow-y: auto;
+  background-color: #ffffff;
+  border: 1px solid #dfe7e3;
+  border-radius: 8px;
+}
+
+.integrated-item-panel h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.integrated-item-panel h5 {
+  color: #2c3e50;
+  border-bottom: 2px solid #e5efeb;
+  padding-bottom: 4px;
+}
+/* Buitenste container: horizontaal scrollen op kleinere schermen */
+.integrated-growth-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* De grafiek en itemdetails blijven altijd naast elkaar staan */
+.integrated-growth-layout {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 20px;
+
+  width: 100%;
+  min-width: 1200px;
+}
+
+/* Verhouding 3:1 */
+.integrated-growth-plot {
+  flex: 0 0 calc(75% - 10px);
+  width: calc(75% - 10px);
+  min-width: 880px;
+}
+
+/* Itemdetails rechts */
+.integrated-item-panel {
+  flex: 0 0 calc(25% - 10px);
+  width: calc(25% - 10px);
+  min-width: 280px;
+  max-height: 900px;
+  overflow-y: auto;
+
+  padding: 15px;
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+}
+
+/* Houd Plotly op volledige breedte binnen het vaste paneel */
+.integrated-growth-plot .plotly,
+.integrated-growth-plot .html-widget,
+.integrated-growth-plot .plot-container {
+  width: 100% !important;
+}
