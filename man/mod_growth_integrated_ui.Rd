@@ -16,3 +16,8 @@ Shiny UI elements.
 Shows Dutch reference curves, an individual D-score trajectory, clickable
 item details grouped by domain, and optional domain-specific trajectories.
 }
+\details{
+Integrated D-score growth chart UI
+
+Integrated D-score growth chart
+}

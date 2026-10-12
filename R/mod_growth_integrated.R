@@ -87,6 +87,7 @@ mod_growth_integrated_ui <- function(id) {
 #'   `feedback_data$settings$population` is used.
 #' @param domain_set Optional set in `dscoreddi::domaintableddi`. If NULL,
 #'   `feedback_data$settings$domain_set` is used when available.
+#' @param domain_colors named vector with color codes for each domain.
 #'
 #' @return A reactive containing the selected contact moment.
 #' @export

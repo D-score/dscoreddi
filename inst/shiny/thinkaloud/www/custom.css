@@ -1,0 +1,39 @@
+.scenario-card {
+  background: #ffffff;
+  border: 1px solid #dfe7e3;
+  border-radius: 12px;
+  padding: 22px;
+  margin-bottom: 16px;
+}
+.scenario-card-wide { overflow-x: auto; }
+.scenario-navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 24px 0;
+}
+.child-profile { max-width: 720px; margin-top: 20px; }
+.info-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf1ef;
+}
+.info-label { font-weight: 700; color: #34495e; }
+.scenario-domain-block { margin: 18px 0 26px 0; }
+.scenario-domain-block h4 {
+  padding-bottom: 6px;
+  border-bottom: 2px solid #dfe7e3;
+}
+.scenario-item-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 190px;
+  gap: 18px;
+  padding: 9px 4px;
+  border-bottom: 1px solid #f0f2f1;
+}
+.scenario-item-label { line-height: 1.4; }
+.scenario-answer { font-weight: 700; }
+.scenario-answer.achieved { color: #218739; }
+.scenario-answer.not-achieved { color: #D55E00; }

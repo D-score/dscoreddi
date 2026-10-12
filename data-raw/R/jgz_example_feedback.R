@@ -222,9 +222,63 @@ names(jgz_example_feedback)[
   startsWith(names(jgz_example_feedback), "ddi")
 ]
 
+# ------------------------------------------------------------------------------
+# 9. Fictive name
+# ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
-# 9. Opslaan als packagedataset
+# 9. Fictieve naam toevoegen
+# ------------------------------------------------------------------------------
+
+if (!requireNamespace("charlatan", quietly = TRUE)) {
+  install.packages("charlatan")
+}
+
+name_key <- jgz_example_feedback |>
+  distinct(ID) |>
+  arrange(ID)
+
+set.seed(20261012)
+
+n_kinderen <- nrow(name_key)
+
+fictieve_namen <- unique(
+  charlatan::ch_name(
+    n = n_kinderen * 3,
+    locale = "nl_NL"
+  )
+)
+
+if (length(fictieve_namen) < n_kinderen) {
+  stop(
+    "Er konden onvoldoende unieke fictieve namen worden gegenereerd.",
+    call. = FALSE
+  )
+}
+
+name_key <- name_key |>
+  mutate(
+    name = fictieve_namen[
+      seq_len(n_kinderen)
+    ]
+  )
+
+jgz_example_feedback <- jgz_example_feedback |>
+  left_join(
+    name_key,
+    by = "ID"
+  ) |>
+  relocate(
+    name,
+    .after = ID
+  ) |>
+  arrange(
+    ID,
+    age
+  )
+
+# ------------------------------------------------------------------------------
+# 10. Opslaan als packagedataset
 # ------------------------------------------------------------------------------
 
 usethis::use_data(

@@ -10,7 +10,8 @@ mod_growth_integrated_server(
   child_id,
   reference_key = NULL,
   reference_population = NULL,
-  domain_set = NULL
+  domain_set = NULL,
+  domain_colors = NULL
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ mod_growth_integrated_server(
 
 \item{domain_set}{Optional set in \code{dscoreddi::domaintableddi}. If NULL,
 \code{feedback_data$settings$domain_set} is used when available.}
+
+\item{domain_colors}{named vector with color codes for each domain.}
 }
 \value{
 A reactive containing the selected contact moment.

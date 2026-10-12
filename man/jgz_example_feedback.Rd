@@ -8,6 +8,7 @@
 A data frame with one row per measurement occasion containing:
 \describe{
 \item{ID}{Character. Anonymised child identifier.}
+\item{name}{character. fictive name}
 \item{ContactmomentID}{Character. Anonymised contact moment identifier.}
 \item{age}{Numeric. Child age at measurement in years.}
 \item{agemos}{Numeric. Child age at measurement in months.}
