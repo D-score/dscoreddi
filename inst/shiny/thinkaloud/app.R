@@ -756,8 +756,8 @@ server <- function(input, output, session) {
         ),
 
         answer = dplyr::case_when(
-          .data$score == 1 ~ "Ja, behaald",
-          .data$score == 0 ~ "Nee, nog niet behaald",
+          .data$score == 1 ~ "(+) Ja, behaald",
+          .data$score == 0 ~ "(-) Nee, nog niet behaald",
           TRUE ~ "Niet bekend"
         )
       ) |>
